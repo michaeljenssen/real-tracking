@@ -399,6 +399,12 @@
   <div onclick="toggleTalkSession()">
     <canvas id="talkOrbCanvas" width="280" height="280"></canvas>
   </div>
+  <div id="talkErrBox" style="display:none;position:absolute;top:70px;left:16px;right:16px;background:rgba(255,59,48,0.12);border:1px solid #FF3B30;border-radius:10px;padding:12px 14px;z-index:20;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+      <div id="talkErrMsg" style="flex:1;color:#FF3B30;font-size:13px;line-height:1.5;word-break:break-word;"></div>
+      <button onclick="hideTalkError()" style="background:none;border:none;color:#FF3B30;font-size:20px;cursor:pointer;line-height:1;padding:0 4px;">&times;</button>
+    </div>
+  </div>
 </div>
 
 <!-- PROFILE SCREEN -->
@@ -736,25 +742,41 @@
       setTalkStatus('Stopped','idle');
       setTalkBtn('START',false);
     } else {
+      hideTalkError();
+      // SpeechRecognition is not available in Safari or on iOS (any browser) —
+      // the Web Speech API simply does not exist there. Fail fast with a clear
+      // message instead of trying to run a loop that will never hear anything.
+      const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+      if(!SR){
+        showTalkError('Live voice conversation is not supported in Safari or on iOS (Web Speech API missing). On iPhone, use Voice Log or Type Log. Talk mode works in desktop Chrome.');
+        return;
+      }
       // Start the loop
       talkRunning=true;
       setTalkBtn('STOP',true);
       // First turn - greet user
       setTalkStatus('Connecting...','thinking');
-      const history=await sbFetchRecent(7);
-      const historySummary=buildHistorySummary(history);
-      const ctxLine=userContext?`User context: ${userContext}\n`:'';
-      const greeting=await claudeTalkResponse(talkMessages,
-        `${ctxLine}Session history:\n${historySummary}\n\nGreet the user in 1-2 sentences. Reference their recent training if available. Ask what's on their mind. Be natural and brief.`,
-        true
-      );
-      talkMessages.push({role:'assistant',content:greeting});
-      if(!talkRunning)return;
-      setTalkStatus('Speaking...','speaking');
-      await elevenSpeak(greeting);
-      if(!talkRunning)return;
-      // Start continuous listen loop
-      talkLoop();
+      try{
+        const history=await sbFetchRecent(7);
+        const historySummary=buildHistorySummary(history);
+        const ctxLine=userContext?`User context: ${userContext}\n`:'';
+        const greeting=await claudeTalkResponse(talkMessages,
+          `${ctxLine}Session history:\n${historySummary}\n\nGreet the user in 1-2 sentences. Reference their recent training if available. Ask what's on their mind. Be natural and brief.`,
+          true
+        );
+        talkMessages.push({role:'assistant',content:greeting});
+        if(!talkRunning)return;
+        setTalkStatus('Speaking...','speaking');
+        await elevenSpeak(greeting);
+        if(!talkRunning)return;
+        // Start continuous listen loop
+        talkLoop();
+      }catch(err){
+        showTalkError(err.message||String(err));
+        talkRunning=false;
+        setTalkStatus('Tap to start','idle');
+        setTalkBtn('START',false);
+      }
     }
   }
 
@@ -767,16 +789,24 @@
       if(!userText.trim()) continue;
       talkMessages.push({role:'user',content:userText});
 
-      // Think
-      setTalkStatus('Thinking...','thinking');
-      const response=await claudeTalkResponse(talkMessages,'',false);
-      talkMessages.push({role:'assistant',content:response});
-      if(!talkRunning)return;
+      try{
+        // Think
+        setTalkStatus('Thinking...','thinking');
+        const response=await claudeTalkResponse(talkMessages,'',false);
+        talkMessages.push({role:'assistant',content:response});
+        if(!talkRunning)return;
 
-      // Speak
-      setTalkStatus('Speaking...','speaking');
-      await elevenSpeak(response);
-      if(!talkRunning)return;
+        // Speak
+        setTalkStatus('Speaking...','speaking');
+        await elevenSpeak(response);
+        if(!talkRunning)return;
+      }catch(err){
+        showTalkError(err.message||String(err));
+        talkRunning=false;
+        setTalkStatus('Tap to start','idle');
+        setTalkBtn('START',false);
+        return;
+      }
     }
   }
 
@@ -796,30 +826,59 @@
     });
   }
 
+  function showTalkError(msg){
+    const box=document.getElementById('talkErrBox');
+    const msgEl=document.getElementById('talkErrMsg');
+    if(box&&msgEl){
+      msgEl.textContent=msg;
+      box.style.display='block';
+    }
+    console.error('[talk]',msg);
+  }
+
+  function hideTalkError(){
+    const box=document.getElementById('talkErrBox');
+    if(box) box.style.display='none';
+  }
+
   async function claudeTalkResponse(messages, systemOverride, isFirst){
+    const systemMsg=isFirst
+      ? systemOverride
+      : `${RA_SYSTEM_PROMPT}\n\n${userContext?`User context: ${userContext}\n`:''}\nYou are in a live voice conversation. Keep responses to 2-3 sentences. State what the data or biology shows. Do not prescribe or instruct. No bullet points. Speak naturally.`;
+
+    const payload={
+      model:'claude-sonnet-4-20250514',
+      max_tokens:200,
+      system: isFirst ? undefined : systemMsg,
+      messages: isFirst
+        ? [{role:'user',content:systemOverride}]
+        : messages.slice(-8)
+    };
+    if(isFirst) delete payload.system;
+
+    let res;
     try{
-      const systemMsg=isFirst
-        ? systemOverride
-        : `${RA_SYSTEM_PROMPT}\n\n${userContext?`User context: ${userContext}\n`:''}\nYou are in a live voice conversation. Keep responses to 2-3 sentences. State what the data or biology shows. Do not prescribe or instruct. No bullet points. Speak naturally.`;
-
-      const payload={
-        model:'claude-sonnet-4-20250514',
-        max_tokens:200,
-        system: isFirst ? undefined : systemMsg,
-        messages: isFirst
-          ? [{role:'user',content:systemOverride}]
-          : messages.slice(-8)
-      };
-      if(isFirst) delete payload.system;
-
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
+      res=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
         body:JSON.stringify(payload)
       });
-      const data=await res.json();
-      return data.content?.[0]?.text||'Sorry, try again.';
-    }catch(e){return'Connection issue.';}
+    }catch(e){
+      throw new Error(`Network error reaching Claude: ${e.message||e}`);
+    }
+
+    let data;
+    try{
+      data=await res.json();
+    }catch(e){
+      throw new Error(`Claude API ${res.status}: non-JSON response`);
+    }
+
+    if(!res.ok||!data.content?.[0]?.text){
+      const detail=data.error?.message||data.message||JSON.stringify(data).slice(0,300);
+      throw new Error(`Claude API ${res.status}: ${detail}`);
+    }
+    return data.content[0].text;
   }
 
   // ORB ANIMATION
