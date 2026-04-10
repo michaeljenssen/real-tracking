@@ -270,6 +270,28 @@ border-bottom:1px solid rgba(255,255,255,0.1);
   let liveTranscript = '';
   let waveData = []; // scrolling waveform history
 
+  // Resume AudioContext when app comes back to foreground
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible') {
+      if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+        try { await globalAudioCtx.resume(); } catch(e) {}
+      }
+      // If stream died while in background, reset it
+      if (globalStream && !globalStream.active) {
+        globalStream = null;
+        globalAudioCtx = null;
+        globalAnalyser = null;
+        analyser = null;
+      }
+    }
+  });
+
+  window.addEventListener('focus', async () => {
+    if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
+      try { await globalAudioCtx.resume(); } catch(e) {}
+    }
+  });
+
   // Init
   window.addEventListener('load', () => {
     loadSessions();
