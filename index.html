@@ -1,0 +1,2156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Real Tracking">
+<meta name="theme-color" content="#141414">
+<title>Real Tracking</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --nb:#141414;--dark:#1E1E1E;--dark2:#252525;--or:#F6692A;--or2:#D4551F;
+    --orbg:rgba(246,105,42,0.1);--w:#FFFFFF;--g:#6B6B6B;
+    --b1:#2E2E2E;--b2:#3A3A3A;--gr:#34C759;--grbg:rgba(52,199,89,0.1);
+  }
+  html,body{height:100%;background:var(--nb);color:var(--w);font-family:'Inter',sans-serif;overflow:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 50% -10%,rgba(246,105,42,0.06) 0%,transparent 55%);pointer-events:none;z-index:0;}
+
+  .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;overflow-y:auto;z-index:1;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+  .screen.active{opacity:1;pointer-events:all;}
+
+  /* LOGIN */
+  #loginScreen{justify-content:center;gap:24px;padding:24px;}
+  .login-card{width:100%;max-width:400px;background:var(--dark);border:1px solid var(--b1);border-radius:20px;padding:40px 28px;display:flex;flex-direction:column;align-items:center;gap:24px;text-align:center;}
+  .hex{width:13px;height:13px;background:var(--or);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);}
+  .hex-o{width:13px;height:13px;border:1.5px solid var(--or);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);}
+  .logo-row{display:flex;align-items:center;gap:8px;}
+  .logo-txt{font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;}
+  .login-title{font-size:22px;font-weight:700;letter-spacing:-0.02em;}
+  .login-sub{font-size:14px;color:var(--g);line-height:1.6;}
+  .google-btn{width:100%;padding:14px;background:var(--w);color:#1a1a1a;border:none;border-radius:10px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background 0.2s,transform 0.1s;display:flex;align-items:center;justify-content:center;gap:10px;}
+  .google-btn:hover{background:#f0f0f0;}
+  .google-btn:active{transform:scale(0.98);}
+  .login-note{font-size:11px;color:var(--g);line-height:1.6;}
+
+  /* CONTEXT SETUP (first time after login) */
+  #contextScreen{justify-content:center;gap:20px;padding:24px;}
+  .setup-card{width:100%;max-width:420px;background:var(--dark);border:1px solid var(--b1);border-radius:20px;padding:32px 24px;display:flex;flex-direction:column;gap:20px;}
+  .setup-title{font-size:19px;font-weight:700;letter-spacing:-0.02em;}
+  .setup-sub{font-size:13px;color:var(--g);line-height:1.6;margin-top:4px;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--g);}
+  .field textarea{background:var(--nb);border:1px solid var(--b2);border-radius:10px;padding:11px 13px;font-size:14px;color:var(--w);font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s;width:100%;resize:none;height:90px;}
+  .field textarea:focus{border-color:var(--or);}
+  .field textarea::placeholder{color:var(--g);}
+  .field-note{font-size:11px;color:var(--g);line-height:1.5;}
+  .btn-p{width:100%;padding:13px;background:var(--or);color:var(--w);border:none;border-radius:10px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background 0.2s,transform 0.1s;}
+  .btn-p:hover{background:var(--or2);}
+  .btn-p:active{transform:scale(0.98);}
+  .btn-skip{width:100%;padding:11px;background:transparent;color:var(--g);border:1px solid var(--b2);border-radius:10px;font-size:14px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;}
+
+  /* MAIN */
+  #mainScreen{justify-content:flex-start;padding:0;}
+  .topbar{width:100%;display:flex;align-items:center;justify-content:space-between;padding:max(env(safe-area-inset-top,16px),16px) 20px 12px;background:var(--nb);border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:10;}
+  .user-pill{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--dark);border:1px solid var(--b1);border-radius:100px;cursor:pointer;}
+  .user-avatar{width:22px;height:22px;border-radius:50%;background:var(--or);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;overflow:hidden;}
+  .user-avatar img{width:100%;height:100%;object-fit:cover;}
+  .user-name{font-size:12px;font-weight:600;color:var(--w);}
+  .sign-out-btn{font-size:11px;color:var(--g);background:transparent;border:none;cursor:pointer;padding:2px 4px;}
+  .sign-out-btn:hover{color:#FF3B30;}
+
+  .tabbar{width:100%;display:flex;background:var(--nb);border-bottom:1px solid var(--b1);position:sticky;top:calc(max(env(safe-area-inset-top,16px),16px) + 46px);z-index:9;}
+  .tab{flex:1;padding:12px;font-size:13px;font-weight:600;color:var(--g);background:transparent;border:none;cursor:pointer;font-family:'Inter',sans-serif;border-bottom:2px solid transparent;transition:all 0.2s;}
+  .tab.active{color:var(--or);border-bottom-color:var(--or);}
+
+  .panel{display:none;width:100%;flex-direction:column;align-items:center;padding:20px 20px max(env(safe-area-inset-bottom,20px),20px);gap:16px;}
+  .panel.active{display:flex;}
+
+  /* RECORDER */
+  .rec-card{width:100%;max-width:480px;background:var(--dark);border:1px solid var(--b1);border-radius:20px;padding:24px 20px;display:flex;flex-direction:column;align-items:center;gap:20px;}
+  .viz{width:100%;height:52px;background:var(--nb);border-radius:10px;border:1px solid var(--b1);overflow:hidden;}
+  canvas{width:100%;height:100%;display:block;}
+  .timer{font-size:42px;font-weight:200;letter-spacing:0.04em;font-variant-numeric:tabular-nums;color:var(--w);transition:color 0.3s;}
+  .timer.rec{color:var(--or);}
+  .pill{display:flex;align-items:center;gap:6px;padding:4px 13px;border-radius:100px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;background:var(--nb);border:1px solid var(--b1);color:var(--g);transition:all 0.3s;}
+  .pill.rec{background:var(--orbg);border-color:rgba(246,105,42,0.3);color:var(--or);}
+  .pill.done{background:var(--grbg);border-color:rgba(52,199,89,0.3);color:var(--gr);}
+  .pdot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .pill.rec .pdot{animation:blink 1s ease infinite;}
+  .rec-wrap{position:relative;display:flex;align-items:center;justify-content:center;}
+  .ring{position:absolute;width:98px;height:98px;border-radius:50%;border:2px solid rgba(246,105,42,0.15);}
+  .ring.pulse{animation:ringOut 1.5s ease infinite;}
+  .rbtn{width:74px;height:74px;border-radius:50%;border:none;cursor:pointer;background:var(--or);display:flex;align-items:center;justify-content:center;transition:background 0.2s,transform 0.1s;position:relative;z-index:1;-webkit-appearance:none;}
+  .rbtn:hover{background:var(--or2);}
+  .rbtn:active{transform:scale(0.95);}
+  .rbtn.rec{background:var(--w);}
+  .mic{display:block;}.stp{display:none;}
+  .rec .mic{display:none;}.rec .stp{display:block;}
+  .slabel{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--g);}
+  .tbox{width:100%;min-height:80px;background:var(--nb);border:1px solid var(--b1);border-radius:10px;padding:12px;font-size:14px;line-height:1.65;color:var(--w);font-family:'Inter',sans-serif;resize:none;outline:none;transition:border-color 0.2s;}
+  .tbox::placeholder{color:var(--g);}
+  .ai-box{width:100%;background:var(--nb);border:1px solid var(--b1);border-radius:10px;padding:14px;display:none;flex-direction:column;gap:11px;}
+  .ai-box.on{display:flex;}
+  .ai-hd{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--or);display:flex;align-items:center;gap:7px;}
+  .ai-r{display:flex;flex-direction:column;gap:2px;}
+  .ai-rl{font-size:10px;color:var(--g);font-weight:500;text-transform:uppercase;letter-spacing:0.08em;}
+  .ai-rv{font-size:13px;color:var(--w);line-height:1.5;}
+  .spin{width:13px;height:13px;border:2px solid var(--b2);border-top-color:var(--or);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;}
+  .arow{width:100%;display:none;align-items:center;justify-content:space-between;background:var(--orbg);border:1px solid rgba(246,105,42,0.2);border-radius:10px;padding:11px 13px;gap:10px;}
+  .arow.on{display:flex;}
+  .ainfo{display:flex;flex-direction:column;gap:1px;}
+  .aname{font-size:12px;font-weight:600;color:var(--w);}
+  .ameta{font-size:11px;color:var(--g);}
+  .abtn{background:var(--or);color:var(--w);border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;text-decoration:none;display:flex;align-items:center;gap:4px;transition:background 0.2s;}
+  .abtn:hover{background:var(--or2);}
+  .acts{width:100%;display:flex;gap:8px;}
+  .btn{flex:1;padding:11px;border-radius:10px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:5px;}
+  .btn-s{background:transparent;color:var(--w);border:1px solid var(--b2);}
+  .btn-s:hover{border-color:var(--g);}
+  .btn-o{background:var(--or);color:var(--w);}
+  .btn-o:hover{background:var(--or2);}
+  .btn:disabled{opacity:0.3;pointer-events:none;}
+  .fn{width:100%;max-width:480px;padding:10px 0 4px;text-align:center;font-size:11px;color:var(--g);line-height:1.6;}
+
+  /* LOG */
+  .log-header{width:100%;max-width:900px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .log-title{font-size:15px;font-weight:700;}
+  .log-count{font-size:12px;color:var(--g);}
+  .log-acts{display:flex;gap:8px;}
+  .sm-btn{padding:7px 13px;border-radius:8px;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;border:1px solid var(--b2);background:transparent;color:var(--w);transition:all 0.2s;}
+  .sm-btn:hover{border-color:var(--g);}
+  .sm-btn.danger{border-color:rgba(255,59,48,0.3);color:#FF3B30;}
+  .sm-btn.danger:hover{background:rgba(255,59,48,0.1);}
+  .empty-state{width:100%;max-width:900px;background:var(--dark);border:1px solid var(--b1);border-radius:16px;padding:48px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;}
+  .empty-icon{width:48px;height:48px;background:var(--orbg);border-radius:12px;display:flex;align-items:center;justify-content:center;}
+  .empty-title{font-size:15px;font-weight:600;}
+  .empty-sub{font-size:13px;color:var(--g);line-height:1.6;}
+  .table-wrap{width:100%;max-width:900px;overflow-x:auto;border-radius:14px;border:1px solid var(--b1);}
+  table{width:100%;border-collapse:collapse;min-width:700px;}
+  thead{background:var(--dark2);}
+  th{padding:10px 13px;text-align:left;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--g);border-bottom:1px solid var(--b1);white-space:nowrap;}
+  tbody tr{border-bottom:1px solid var(--b1);transition:background 0.15s;cursor:pointer;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:var(--dark2);}
+  td{padding:11px 13px;font-size:13px;color:var(--w);vertical-align:top;line-height:1.5;}
+  td.muted{color:var(--g);font-size:12px;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;background:var(--orbg);color:var(--or);border:1px solid rgba(246,105,42,0.2);}
+  .badge.none{background:var(--grbg);color:var(--gr);border-color:rgba(52,199,89,0.2);}
+  .del-btn{background:transparent;border:none;color:var(--g);cursor:pointer;padding:3px 6px;border-radius:4px;font-size:16px;transition:color 0.2s;}
+  .del-btn:hover{color:#FF3B30;}
+  .loading-row{padding:32px;text-align:center;color:var(--g);font-size:13px;display:flex;align-items:center;justify-content:center;gap:10px;}
+
+  /* DRAWER */
+  .drawer{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+  .drawer.open{opacity:1;pointer-events:all;}
+  .drawer-bg{position:absolute;inset:0;background:rgba(0,0,0,0.6);}
+  .drawer-sheet{position:relative;width:100%;max-height:80vh;background:var(--dark);border-radius:20px 20px 0 0;border-top:1px solid var(--b1);padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;transform:translateY(100%);transition:transform 0.3s ease;}
+  .drawer.open .drawer-sheet{transform:translateY(0);}
+  .drawer-handle{width:36px;height:4px;background:var(--b2);border-radius:2px;margin:0 auto 4px;}
+  .drawer-title{font-size:15px;font-weight:700;}
+  .drawer-row{display:flex;flex-direction:column;gap:3px;padding:10px 0;border-bottom:1px solid var(--b1);}
+  .drawer-row:last-child{border-bottom:none;}
+  .drawer-label{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--g);}
+  .drawer-val{font-size:14px;color:var(--w);line-height:1.6;}
+  .drawer-close{position:absolute;top:20px;right:20px;background:var(--b1);border:none;border-radius:6px;color:var(--g);font-size:18px;line-height:1;padding:4px 8px;cursor:pointer;}
+  .drawer-edit-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid var(--b2);border-radius:8px;color:var(--w);font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:all 0.2s;}
+  .drawer-edit-btn:hover{border-color:var(--or);color:var(--or);}
+  .drawer-save-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--or);border:none;border-radius:8px;color:var(--w);font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:background 0.2s;}
+  .drawer-save-btn:hover{background:var(--or2);}
+  .drawer-cancel-btn{padding:8px 14px;background:transparent;border:1px solid var(--b2);border-radius:8px;color:var(--g);font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;}
+  .drawer-field-edit{width:100%;background:var(--nb);border:1px solid var(--b2);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--w);font-family:'Inter',sans-serif;outline:none;resize:none;line-height:1.5;transition:border-color 0.2s;}
+  .drawer-field-edit:focus{border-color:var(--or);}
+  .edit-actions{display:flex;gap:8px;padding-top:8px;border-top:1px solid var(--b1);margin-top:4px;}
+  .delete-zone{padding:12px 0 4px;text-align:center;}
+  .drawer-delete-btn{background:transparent;border:none;color:#FF3B30;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;padding:6px 12px;border-radius:6px;transition:background 0.2s;}
+  .drawer-delete-btn:hover{background:rgba(255,59,48,0.1);}
+  #undoBtn:not(:disabled):hover,#redoBtn:not(:disabled):hover{border-color:var(--or);color:var(--or);}
+  #undoBtn:disabled,#redoBtn:disabled{opacity:0.3;cursor:not-allowed;}
+
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+  @keyframes ringOut{0%{transform:scale(1);opacity:0.5}100%{transform:scale(1.6);opacity:0}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes wavePulse{from{transform:scaleY(0.4)}to{transform:scaleY(1.2)}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+  /* HOME ORB */
+  .home-orb{
+    width:180px;height:180px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #ff8c5a 0%, #F6692A 40%, #c44d1a 75%, #8b2d0a 100%);
+    box-shadow:0 0 60px rgba(246,105,42,0.35), 0 0 120px rgba(246,105,42,0.15), inset 0 0 40px rgba(255,255,255,0.05);
+    position:relative;overflow:hidden;
+    animation:orbBreath 4s ease-in-out infinite;
+    transition:all 0.4s ease;
+  }
+  .home-orb:hover{
+    box-shadow:0 0 80px rgba(246,105,42,0.5), 0 0 160px rgba(246,105,42,0.2);
+    transform:scale(1.03);
+  }
+  .orb-inner-glow{
+    position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 30% 25%, rgba(255,255,255,0.25) 0%, transparent 50%);
+  }
+  .orb-shine{
+    position:absolute;top:12%;left:18%;width:35%;height:25%;
+    background:radial-gradient(ellipse, rgba(255,255,255,0.35) 0%, transparent 70%);
+    border-radius:50%;filter:blur(4px);
+  }
+  .orb-ring{
+    position:absolute;border-radius:50%;border:1px solid rgba(246,105,42,0.15);
+    animation:orbRingPulse 4s ease-in-out infinite;
+  }
+  .orb-ring-1{width:210px;height:210px;animation-delay:0s;}
+  .orb-ring-2{width:240px;height:240px;animation-delay:0.6s;border-color:rgba(246,105,42,0.08);}
+  .orb-ring-3{width:270px;height:270px;animation-delay:1.2s;border-color:rgba(246,105,42,0.04);}
+
+  @keyframes orbBreath{
+    0%,100%{transform:scale(1);box-shadow:0 0 60px rgba(246,105,42,0.35),0 0 120px rgba(246,105,42,0.15);}
+    50%{transform:scale(1.04);box-shadow:0 0 80px rgba(246,105,42,0.45),0 0 160px rgba(246,105,42,0.2);}
+  }
+  @keyframes orbRingPulse{
+    0%,100%{transform:scale(1);opacity:1;}
+    50%{transform:scale(1.08);opacity:0.4;}
+  }
+  .home-orb.listening{
+    animation:orbListen 0.8s ease-in-out infinite;
+    background:radial-gradient(circle at 35% 35%, #ff9966 0%, #ff6633 40%, #cc3300 100%);
+  }
+  .home-orb.speaking{
+    animation:orbSpeak 1.2s ease-in-out infinite;
+    background:radial-gradient(circle at 35% 35%, #7af0ff 0%, #00b4d8 40%, #0077a8 100%);
+    box-shadow:0 0 60px rgba(0,180,216,0.4),0 0 120px rgba(0,180,216,0.15);
+  }
+  .home-orb.thinking{
+    animation:orbThink 2s ease-in-out infinite;
+    background:radial-gradient(circle at 35% 35%, #90ff90 0%, #34C759 40%, #1a8c36 100%);
+    box-shadow:0 0 60px rgba(52,199,89,0.4),0 0 120px rgba(52,199,89,0.15);
+  }
+  @keyframes orbListen{
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.08);}
+  }
+  @keyframes orbSpeak{
+    0%,100%{transform:scale(1) rotate(0deg);}
+    33%{transform:scale(1.05) rotate(1deg);}
+    66%{transform:scale(0.97) rotate(-1deg);}
+  }
+  @keyframes orbThink{
+    0%,100%{transform:scale(1);filter:brightness(1);}
+    50%{transform:scale(1.02);filter:brightness(1.15);}
+  }
+
+  /* PROFILE SCREEN */
+  #profileScreen{justify-content:flex-start;padding:0;}
+  .profile-header{width:100%;display:flex;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid var(--b1);}
+  .profile-section{width:100%;max-width:480px;padding:20px;display:flex;flex-direction:column;gap:8px;}
+  .profile-section-title{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--g);padding:0 4px;margin-bottom:4px;}
+  .profile-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--dark);border-radius:12px;cursor:pointer;transition:background 0.2s;}
+  .profile-item:hover{background:var(--dark2);}
+  .profile-item-label{font-size:14px;font-weight:500;}
+  .profile-item-value{font-size:13px;color:var(--g);}
+  .profile-item-arrow{color:var(--g);font-size:16px;}
+  /* HOME SCREEN */
+  #modeScreen{justify-content:center;padding:0;overflow:hidden;}
+
+  /* TYPE LOG SCREEN */
+  #typeScreen{justify-content:flex-start;padding:0;}
+  .type-header{width:100%;display:flex;align-items:center;gap:12px;padding:max(env(safe-area-inset-top,16px),16px) 20px 12px;background:var(--nb);border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:10;}
+  .back-btn{width:34px;height:34px;background:var(--dark);border:1px solid var(--b1);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .type-title{font-size:15px;font-weight:700;}
+  .type-panel{width:100%;max-width:480px;display:flex;flex-direction:column;gap:16px;padding:20px;}
+  .type-box{
+    width:100%;min-height:180px;background:var(--dark);border:1px solid var(--b1);
+    border-radius:16px;padding:18px;font-size:15px;line-height:1.7;color:var(--w);
+    font-family:'Inter',sans-serif;resize:none;outline:none;transition:border-color 0.2s;
+  }
+  .type-box:focus{border-color:var(--or);}
+  .type-box::placeholder{color:var(--g);}
+  .type-submit{
+    width:100%;padding:16px;background:var(--or);color:var(--w);border:none;
+    border-radius:12px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;
+    cursor:pointer;transition:background 0.2s,transform 0.1s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .type-submit:hover{background:var(--or2);}
+  .type-submit:active{transform:scale(0.98);}
+  .type-submit:disabled{opacity:0.35;pointer-events:none;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="screen active" id="loginScreen">
+  <div class="login-card">
+    <div class="logo-row">
+      <div style="display:flex;gap:3px;align-items:center"><div class="hex-o"></div><div class="hex"></div></div>
+      <span class="logo-txt">Real Tracking</span>
+    </div>
+    <div>
+      <div class="login-title">Real Tracking</div>
+      <div class="login-sub" style="margin-top:8px">Say it. Done. Your coach handles the rest.</div>
+    </div>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+    <div class="login-note">Your sessions are private to your account only.</div>
+  </div>
+</div>
+
+<!-- CONTEXT SETUP (first login) -->
+<div class="screen" id="contextScreen">
+  <div class="setup-card">
+    <div class="logo-row">
+      <div style="display:flex;gap:3px;align-items:center"><div class="hex-o"></div><div class="hex"></div></div>
+      <span class="logo-txt">Real Tracking</span>
+    </div>
+    <div>
+      <div class="setup-title">One last thing</div>
+      <div class="setup-sub">Tell Claude about your conditions so it structures your logs accurately.</div>
+    </div>
+    <div class="field">
+      <label>Your Conditions / Context</label>
+      <textarea id="contextInput" placeholder="e.g. I train 4x per week, focus on strength and mobility. Currently working on squat depth and shoulder flexibility."></textarea>
+      <div class="field-note">You can update this anytime from your profile.</div>
+    </div>
+    <button class="btn-p" onclick="saveContext()">Start Recording</button>
+    <button class="btn-skip" onclick="saveContext()">Skip for now</button>
+  </div>
+</div>
+
+<!-- MODE SELECT -->
+<div class="screen" id="modeScreen">
+  <!-- Top bar -->
+  <div style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0;position:absolute;top:0;left:0;z-index:10;">
+    <div class="logo-row">
+      <div style="display:flex;gap:3px;align-items:center"><div class="hex-o"></div><div class="hex"></div></div>
+      <span class="logo-txt">Real Tracking</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="showLog()" style="background:none;border:none;color:var(--g);cursor:pointer;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;">Log</button>
+      <button onclick="show('profileScreen')" style="background:none;border:none;cursor:pointer;padding:0;">
+        <div id="homeAvatar" style="width:32px;height:32px;border-radius:50%;background:var(--or);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;overflow:hidden;"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Central orb area -->
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:80px 24px 120px;width:100%;">
+
+    <!-- Greeting -->
+    <div id="homeGreeting" style="font-size:13px;color:var(--g);font-weight:500;letter-spacing:0.04em;margin-bottom:48px;text-align:center;min-height:18px;"></div>
+
+    <!-- The Bio Visual -->
+    <div id="homeOrbWrap" style="position:relative;width:260px;height:260px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="startTalkMode()">
+      <canvas id="bioCanvas" width="260" height="260" style="position:absolute;top:0;left:0;"></canvas>
+      <div id="homeOrbLabel" style="position:absolute;z-index:10;text-align:center;pointer-events:none;bottom:-40px;left:50%;transform:translateX(-50%);white-space:nowrap;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.6);">Talk to Coach</div>
+      </div>
+    </div>
+
+    <!-- Visual style switcher -->
+    <div style="display:flex;gap:8px;margin-top:48px;">
+      <button onclick="setBioStyle(0)" id="bioBtn0" style="width:8px;height:8px;border-radius:50%;border:none;background:var(--or);cursor:pointer;padding:0;transition:all 0.2s;"></button>
+      <button onclick="setBioStyle(1)" id="bioBtn1" style="width:8px;height:8px;border-radius:50%;border:none;background:var(--b2);cursor:pointer;padding:0;transition:all 0.2s;"></button>
+      <button onclick="setBioStyle(2)" id="bioBtn2" style="width:8px;height:8px;border-radius:50%;border:none;background:var(--b2);cursor:pointer;padding:0;transition:all 0.2s;"></button>
+    </div>
+  </div>
+
+  <!-- Bottom action bar -->
+  <div style="position:absolute;bottom:0;left:0;right:0;padding:0 20px 40px;display:flex;gap:12px;">
+    <button onclick="startVoiceMode()" style="flex:1;padding:16px 12px;background:var(--dark);border:1px solid var(--b1);border-radius:16px;color:var(--w);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:all 0.2s;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <rect x="9" y="2" width="6" height="11" rx="3" fill="#F6692A"/>
+        <path d="M5 10a7 7 0 0 0 14 0" stroke="#F6692A" stroke-width="2" stroke-linecap="round"/>
+        <line x1="12" y1="17" x2="12" y2="21" stroke="#F6692A" stroke-width="2" stroke-linecap="round"/>
+        <line x1="9" y1="21" x2="15" y2="21" stroke="#F6692A" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Voice Log</span>
+    </button>
+    <button onclick="startTypeMode()" style="flex:1;padding:16px 12px;background:var(--dark);border:1px solid var(--b1);border-radius:16px;color:var(--w);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:all 0.2s;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="5" width="18" height="14" rx="3" stroke="#6B6B6B" stroke-width="2"/>
+        <line x1="7" y1="9" x2="17" y2="9" stroke="#6B6B6B" stroke-width="2" stroke-linecap="round"/>
+        <line x1="7" y1="13" x2="13" y2="13" stroke="#6B6B6B" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span style="color:var(--g);">Type Log</span>
+    </button>
+  </div>
+</div>
+
+<!-- TALK SCREEN -->
+<div class="screen" id="talkScreen">
+  <div class="type-header">
+    <div class="back-btn" onclick="endTalk()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#6B6B6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="type-title">Coach</div>
+  </div>
+
+  <div style="flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding:40px 24px;">
+
+    <!-- Animated orb -->
+    <div style="position:relative;width:220px;height:220px;display:flex;align-items:center;justify-content:center;">
+      <canvas id="talkOrbCanvas" width="220" height="220" style="position:absolute;top:0;left:0;border-radius:50%;"></canvas>
+      <div id="talkStatus" style="position:relative;font-size:12px;color:rgba(255,255,255,0.8);font-weight:700;letter-spacing:0.12em;text-transform:uppercase;text-align:center;z-index:2;text-shadow:0 1px 4px rgba(0,0,0,0.5);">Tap to start</div>
+    </div>
+
+    <!-- Big tap button -->
+    <button id="talkMicBtn" onclick="toggleTalkSession()" style="width:72px;height:72px;border-radius:50%;background:var(--or);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s;box-shadow:0 4px 20px rgba(246,105,42,0.4);">
+      <svg id="talkBtnIcon" width="28" height="28" viewBox="0 0 24 24" fill="none">
+        <rect x="9" y="2" width="6" height="11" rx="3" fill="white"/>
+        <path d="M5 10a7 7 0 0 0 14 0" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="12" y1="17" x2="12" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="9" y1="21" x2="15" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <div style="font-size:12px;color:var(--g);text-align:center;">Tap to start · Tap to stop</div>
+  </div>
+</div>
+
+<!-- PROFILE SCREEN -->
+<div class="screen" id="profileScreen">
+  <div class="profile-header">
+    <div class="back-btn" onclick="show('modeScreen')" style="position:relative;top:auto;left:auto;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#6B6B6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div style="font-size:16px;font-weight:700;">Profile</div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">Account</div>
+    <div class="profile-item">
+      <span class="profile-item-label">Name</span>
+      <span class="profile-item-value" id="profileName">—</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-item-label">Email</span>
+      <span class="profile-item-value" id="profileEmail">—</span>
+    </div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">Your Context</div>
+    <div class="profile-item" onclick="show('contextScreen')">
+      <span class="profile-item-label">Conditions & Background</span>
+      <span class="profile-item-arrow">›</span>
+    </div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">Data</div>
+    <div class="profile-item" onclick="showLog()">
+      <span class="profile-item-label">Session Log</span>
+      <span class="profile-item-value" id="profileSessionCount">—</span>
+    </div>
+    <div class="profile-item" onclick="exportCSV()">
+      <span class="profile-item-label">Export CSV</span>
+      <span class="profile-item-arrow">›</span>
+    </div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-section-title">Account</div>
+    <div class="profile-item" onclick="signOut()" style="color:#FF3B30;">
+      <span class="profile-item-label" style="color:#FF3B30;">Sign Out</span>
+    </div>
+  </div>
+</div>
+
+<!-- TYPE LOG SCREEN -->
+<div class="screen" id="typeScreen">
+  <div class="type-header">
+    <div class="back-btn" onclick="show('modeScreen')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="#6B6B6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="type-title">Real Tracking</div>
+  </div>
+  <div class="type-panel" style="align-self:center;">
+    <textarea class="type-box" id="typeInput" placeholder="Write about your session... what you trained, how it felt, what you noticed, what's next."></textarea>
+    <div class="ai-box" id="typeAiBox">
+      <div class="ai-hd"><div class="spin" id="typeAiSpin"></div><span id="typeAiHdTxt">AI Structuring...</span></div>
+      <div id="typeAiRows"></div>
+    </div>
+    <button class="type-submit" id="typeSubmitBtn" onclick="submitTypeLog()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Structure with AI
+    </button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="screen" id="mainScreen">
+  <div class="topbar">
+    <div class="logo-row">
+      <div style="display:flex;gap:3px;align-items:center"><div class="hex-o"></div><div class="hex"></div></div>
+      <span class="logo-txt">Real Tracking</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="user-pill" id="userPill">
+        <div class="user-avatar" id="userAvatar">M</div>
+        <span class="user-name" id="userNameEl">Michael</span>
+      </div>
+      <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button class="tab active" id="tabRecord" onclick="switchTab('record')">Record</button>
+    <button class="tab" id="tabLog" onclick="switchTab('log')">Log <span id="logBadge"></span></button>
+  </div>
+
+  <!-- Record Panel -->
+  <div class="panel active" id="panelRecord">
+    <div class="rec-card">
+      <div class="viz"><canvas id="canvas"></canvas></div>
+      <div class="timer" id="timer">00:00</div>
+      <div class="pill" id="pill"><div class="pdot"></div><span id="pillTxt">Ready</span></div>
+      <div class="rec-wrap">
+        <div class="ring" id="ring"></div>
+        <button class="rbtn" id="rbtn" onclick="toggleRec()">
+          <svg class="mic" width="27" height="27" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="11" rx="3" fill="white"/><path d="M5 10a7 7 0 0 0 14 0" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="21" x2="15" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg class="stp" width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="6" y="6" width="12" height="12" rx="2" fill="#141414"/></svg>
+        </button>
+      </div>
+      <div style="width:100%;display:flex;flex-direction:column;gap:8px;">
+        <div class="slabel">Transcript</div>
+        <textarea class="tbox" id="transcript" placeholder="Transcript appears here as you speak..." readonly></textarea>
+      </div>
+      <div class="ai-box" id="aiBox">
+        <div class="ai-hd"><div class="spin" id="aiSpin"></div><span id="aiHdTxt">AI Structuring...</span></div>
+        <div id="aiRows"></div>
+      </div>
+      <div class="arow" id="arow">
+        <div class="ainfo">
+          <div class="aname" id="aname">recording.m4a</div>
+          <div class="ameta" id="ameta">Audio ready</div>
+        </div>
+        <a class="abtn" id="alink" href="#" download>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 3v13M6 11l6 6 6-6" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="21" x2="20" y2="21" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Save Audio
+        </a>
+      </div>
+      <div class="acts">
+        <button class="btn btn-s" id="clearBtn" onclick="clearAll()" disabled>Clear</button>
+        <button class="btn btn-o" id="copyBtn" onclick="copyTx()" disabled>Copy Transcript</button>
+      </div>
+    </div>
+    <div class="fn">iPhone: tap Save Audio → share → Save to Files</div>
+  </div>
+
+  <!-- Log Panel -->
+  <div class="panel" id="panelLog">
+    <div class="log-header">
+      <div>
+        <div class="log-title">Session Log</div>
+        <div class="log-count" id="logCount">Loading...</div>
+      </div>
+      <div class="log-acts">
+        <button class="sm-btn" onclick="exportCSV()">Export CSV</button>
+        <button class="sm-btn danger" onclick="clearLog()">Clear All</button>
+      </div>
+    </div>
+    <div id="logContent" style="width:100%;max-width:900px;"></div>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer" onclick="closeDrawer(event)">
+  <div class="drawer-bg"></div>
+  <div class="drawer-sheet">
+    <div class="drawer-handle"></div>
+    <button class="drawer-close" onclick="closeDrawerDirect()">×</button>
+    <div class="drawer-title" id="drawerTitle">Session Detail</div>
+    <div id="drawerBody"></div>
+  </div>
+</div>
+
+<script>
+  // CONFIG - hardcoded, users never see these
+  const SB_URL = 'https://zpaowjtjyvfjkbpjogqi.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwYW93anRqeXZmamticGpvZ3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Njc1MDksImV4cCI6MjA5MTI0MzUwOX0.15xalsWwm1IFqDJJU2MntKvoOiWRr7YBLkwKDpm5_sI';
+  const ANTHROPIC_KEY = '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';
+
+  // NOTE: Replace SB_KEY with your actual anon key and ANTHROPIC_KEY with your actual key
+  // before hosting. These are placeholders.
+
+  const sb = supabase.createClient(SB_URL, SB_KEY);
+
+  let currentUser = null;
+  let userContext = '';
+  let mr=null,chunks=[],stream=null,recognition=null,full='';
+  let ti=null,secs=0,ac=null,an=null,af=null;
+  let cachedLogs=[];
+
+  const $=id=>document.getElementById(id);
+  const rbtn=$('rbtn'),ring=$('ring'),timerEl=$('timer'),pill=$('pill'),pillTxt=$('pillTxt');
+  const tx=$('transcript'),aiBox=$('aiBox'),aiSpin=$('aiSpin'),aiHdTxt=$('aiHdTxt'),aiRows=$('aiRows');
+  const arow=$('arow'),alink=$('alink'),aname=$('aname'),ameta=$('ameta');
+  const clearBtn=$('clearBtn'),copyBtn=$('copyBtn');
+  const canvas=$('canvas'),ctx=canvas.getContext('2d');
+
+  // AUTH
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      await setUser(session.user);
+    } else {
+      show('loginScreen');
+    }
+    drawIdle();
+
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        await setUser(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        currentUser = null;
+        show('loginScreen');
+      }
+    });
+  }
+
+  async function setUser(user) {
+    currentUser = user;
+    const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+    const firstName = name.split(' ')[0];
+    const avatar = user.user_metadata?.avatar_url;
+
+    // Topbar name
+    if($('userNameEl')) $('userNameEl').textContent = firstName;
+
+    // Main screen avatar
+    if($('userAvatar')){
+      if(avatar){$('userAvatar').innerHTML=`<img src="${avatar}" alt="${name}">`;}
+      else{$('userAvatar').textContent=name[0].toUpperCase();}
+    }
+
+    // Home screen avatar
+    const homeAvatar=$('homeAvatar');
+    if(homeAvatar){
+      if(avatar){homeAvatar.innerHTML=`<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;}
+      else{homeAvatar.textContent=name[0].toUpperCase();}
+    }
+
+    // Profile screen
+    if($('profileName'))$('profileName').textContent=name;
+    if($('profileEmail'))$('profileEmail').textContent=user.email||'';
+
+    // Home greeting
+    const hour=new Date().getHours();
+    const timeGreet=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+    if($('homeGreeting'))$('homeGreeting').textContent=`${timeGreet}, ${firstName}.`;
+
+    const stored = localStorage.getItem(`ra_ctx_${user.id}`);
+    if (stored === null) {
+      show('contextScreen');
+    } else {
+      userContext = stored;
+      show('modeScreen');
+      updateLogBadge();
+      setTimeout(startBioCanvas, 100);
+    }
+  }
+
+  // Unlock AudioContext on first user touch for iOS
+  let _audioUnlocked=false;
+  function _unlockAudio(){
+    if(_audioUnlocked)return;
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    ctx.resume().then(()=>{_audioUnlocked=true;});
+  }
+  document.addEventListener('touchstart',_unlockAudio,{once:true});
+  document.addEventListener('click',_unlockAudio,{once:true});
+
+  // ELEVENLABS
+  const EL_KEY = 'sk_9efad975790d708b74ad56ba4d58356a93f3ce7439dc5a11';
+  const EL_VOICE = 's3TPKV1kjDlVtZbl4Ksh';
+
+  // Pre-created audio element - must exist before user gesture for iOS
+  const _talkAudio = new Audio();
+  _talkAudio.preload = 'auto';
+
+  async function elevenSpeak(text){
+    try{
+      const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','xi-api-key':EL_KEY},
+        body:JSON.stringify({
+          text,
+          model_id:'eleven_turbo_v2',
+          voice_settings:{stability:0.5,similarity_boost:0.75}
+        })
+      });
+      if(!res.ok)throw new Error(`ElevenLabs ${res.status}`);
+      const blob=await res.blob();
+      const url=URL.createObjectURL(blob);
+      _talkAudio.src=url;
+      return new Promise((resolve)=>{
+        _talkAudio.onended=()=>{URL.revokeObjectURL(url);resolve();};
+        _talkAudio.onerror=()=>{URL.revokeObjectURL(url);resolve();};
+        _talkAudio.play().catch(e=>{
+          console.warn('Audio play failed:',e);
+          // Fallback to speech synthesis
+          URL.revokeObjectURL(url);
+          const utt=new SpeechSynthesisUtterance(text);
+          utt.onend=resolve;
+          utt.onerror=resolve;
+          window.speechSynthesis.speak(utt);
+        });
+      });
+    }catch(e){
+      console.warn('ElevenLabs error:',e);
+      return new Promise(resolve=>{
+        window.speechSynthesis.cancel();
+        const utt=new SpeechSynthesisUtterance(text);
+        utt.onend=resolve;
+        utt.onerror=resolve;
+        window.speechSynthesis.speak(utt);
+      });
+    }
+  }
+
+  // TALK MODE - continuous loop
+  let talkMessages=[];
+  let talkRec=null;
+  let talkActive=false;
+  let talkRunning=false; // true = loop is running
+
+  function startTalkMode(){
+    talkMessages=[];
+    talkActive=true;
+    talkRunning=false;
+    show('talkScreen');
+    orbMode='idle';
+    setTimeout(startOrb,50);
+    setTalkStatus('Tap to start','idle');
+    setTalkBtn('',false);
+  }
+
+  async function toggleTalkSession(){
+    if(talkRunning){
+      // Stop everything
+      talkRunning=false;
+      if(talkRec)try{talkRec.stop();}catch(e){}
+      _talkAudio.pause();
+      window.speechSynthesis.cancel();
+      setTalkStatus('Stopped','idle');
+      setTalkBtn('START',false);
+    } else {
+      // Start the loop
+      talkRunning=true;
+      setTalkBtn('STOP',true);
+      // First turn - greet user
+      setTalkStatus('Connecting...','thinking');
+      const history=await sbFetchRecent(7);
+      const historySummary=buildHistorySummary(history);
+      const ctxLine=userContext?`User context: ${userContext}\n`:'';
+      const greeting=await claudeTalkResponse(talkMessages,
+        `${ctxLine}Session history:\n${historySummary}\n\nGreet the user in 1-2 sentences. Reference their recent training if available. Ask what's on their mind. Be natural and brief.`,
+        true
+      );
+      talkMessages.push({role:'assistant',content:greeting});
+      if(!talkRunning)return;
+      setTalkStatus('Speaking...','speaking');
+      await elevenSpeak(greeting);
+      if(!talkRunning)return;
+      // Start continuous listen loop
+      talkLoop();
+    }
+  }
+
+  async function talkLoop(){
+    while(talkRunning){
+      // Listen
+      setTalkStatus('Listening...','listening');
+      const userText=await talkListen();
+      if(!talkRunning)return;
+      if(!userText.trim()) continue;
+      talkMessages.push({role:'user',content:userText});
+
+      // Think
+      setTalkStatus('Thinking...','thinking');
+      const response=await claudeTalkResponse(talkMessages,'',false);
+      talkMessages.push({role:'assistant',content:response});
+      if(!talkRunning)return;
+
+      // Speak
+      setTalkStatus('Speaking...','speaking');
+      await elevenSpeak(response);
+      if(!talkRunning)return;
+    }
+  }
+
+  function talkListen(){
+    return new Promise((resolve)=>{
+      const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+      if(!SR){resolve('');return;}
+      talkRec=new SR();
+      talkRec.continuous=false;
+      talkRec.interimResults=false;
+      talkRec.lang='en-US';
+      let result='';
+      talkRec.onresult=e=>{result=Array.from(e.results).map(r=>r[0].transcript).join(' ');};
+      talkRec.onend=()=>resolve(result);
+      talkRec.onerror=()=>resolve('');
+      try{talkRec.start();}catch(e){resolve('');}
+    });
+  }
+
+  async function claudeTalkResponse(messages, systemOverride, isFirst){
+    try{
+      const systemMsg=isFirst
+        ? systemOverride
+        : `${RA_SYSTEM_PROMPT}\n\n${userContext?`User context: ${userContext}\n`:''}\nYou are in a live voice conversation. Keep responses to 2-3 sentences. State what the data or biology shows. Do not prescribe or instruct. No bullet points. Speak naturally.`;
+
+      const payload={
+        model:'claude-sonnet-4-20250514',
+        max_tokens:200,
+        system: isFirst ? undefined : systemMsg,
+        messages: isFirst
+          ? [{role:'user',content:systemOverride}]
+          : messages.slice(-8)
+      };
+      if(isFirst) delete payload.system;
+
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify(payload)
+      });
+      const data=await res.json();
+      return data.content?.[0]?.text||'Sorry, try again.';
+    }catch(e){return'Connection issue.';}
+  }
+
+  // ORB ANIMATION
+  let orbAF=null;
+  let orbMode='idle';
+  let orbT=0;
+
+  function orbColors(mode){
+    const schemes={
+      idle:   [[20,20,30],[30,30,50],[40,40,70]],
+      listening: [[180,60,10],[220,80,20],[246,105,42]],
+      thinking:  [[10,80,40],[20,120,60],[52,199,89]],
+      speaking:  [[10,60,140],[30,100,200],[90,160,250]]
+    };
+    return schemes[mode]||schemes.idle;
+  }
+
+  function drawOrb(){
+    const canvas=document.getElementById('talkOrbCanvas');
+    if(!canvas)return;
+    const ctx=canvas.getContext('2d');
+    const W=220,H=220,cx=W/2,cy=H/2,R=100;
+    orbT+=0.012;
+
+    const cols=orbColors(orbMode);
+    const speed=orbMode==='idle'?0.4:orbMode==='listening'?1.8:orbMode==='thinking'?1.2:2.2;
+    const blobScale=orbMode==='idle'?0.08:orbMode==='listening'?0.22:orbMode==='thinking'?0.15:0.28;
+
+    ctx.clearRect(0,0,W,H);
+
+    // Clip to circle
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.clip();
+
+    // Background
+    const bg=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+    bg.addColorStop(0,`rgb(${cols[1].join(',')})`);
+    bg.addColorStop(1,`rgb(${cols[0].join(',')})`);
+    ctx.fillStyle=bg;
+    ctx.fillRect(0,0,W,H);
+
+    // Fluid blobs
+    const numBlobs=4;
+    for(let i=0;i<numBlobs;i++){
+      const angle=orbT*speed+(i*Math.PI*2/numBlobs);
+      const wobble=Math.sin(orbT*1.3+i)*0.3;
+      const bx=cx+Math.cos(angle+wobble)*R*0.45;
+      const by=cy+Math.sin(angle*0.7+wobble)*R*0.45;
+      const br=R*(0.5+blobScale*Math.sin(orbT*2+i));
+
+      const grad=ctx.createRadialGradient(bx,by,0,bx,by,br);
+      const alpha=orbMode==='idle'?0.25:0.45;
+      grad.addColorStop(0,`rgba(${cols[2].join(',')},${alpha})`);
+      grad.addColorStop(1,`rgba(${cols[2].join(',')},0)`);
+      ctx.fillStyle=grad;
+      ctx.beginPath();
+      ctx.arc(bx,by,br,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    // Center glow
+    const glow=ctx.createRadialGradient(cx,cy,0,cx,cy,R*0.6);
+    glow.addColorStop(0,`rgba(${cols[2].join(',')},0.15)`);
+    glow.addColorStop(1,`rgba(${cols[2].join(',')},0)`);
+    ctx.fillStyle=glow;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.restore();
+
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(${cols[2].join(',')},0.3)`;
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+
+    orbAF=requestAnimationFrame(drawOrb);
+  }
+
+  function startOrb(){
+    if(orbAF)cancelAnimationFrame(orbAF);
+    drawOrb();
+  }
+
+  function stopOrb(){
+    if(orbAF)cancelAnimationFrame(orbAF);
+    orbAF=null;
+  }
+
+  // BIO CANVAS - three biological visual styles
+  let bioStyle=0; // 0=cell mesh, 1=fiber weave, 2=neural pulse
+  let bioT=0;
+  let bioAF=null;
+  let bioState='idle'; // idle/listening/thinking/speaking
+
+  function setBioStyle(s){
+    bioStyle=s;
+    [0,1,2].forEach(i=>{
+      const btn=document.getElementById(`bioBtn${i}`);
+      if(btn) btn.style.background = i===s ? 'var(--or)' : 'var(--b2)';
+    });
+  }
+
+  function bioColor(){
+    const c={
+      idle:{r:246,g:105,b:42},
+      listening:{r:255,g:80,b:30},
+      thinking:{r:52,g:199,b:89},
+      speaking:{r:90,g:160,b:250}
+    };
+    return c[bioState]||c.idle;
+  }
+
+  function drawBio(){
+    const canvas=document.getElementById('bioCanvas');
+    if(!canvas){bioAF=requestAnimationFrame(drawBio);return;}
+    const ctx=canvas.getContext('2d');
+    const W=260,H=260,cx=W/2,cy=H/2;
+    bioT+=0.008;
+    ctx.clearRect(0,0,W,H);
+    const col=bioColor();
+    const pulse=bioState==='idle'?1+Math.sin(bioT*1.2)*0.03:
+                bioState==='listening'?1+Math.sin(bioT*4)*0.08:
+                bioState==='thinking'?1+Math.sin(bioT*2)*0.05:
+                1+Math.sin(bioT*5)*0.1;
+
+    if(bioStyle===0) drawCellMesh(ctx,W,H,cx,cy,col,pulse);
+    else if(bioStyle===1) drawFiberWeave(ctx,W,H,cx,cy,col,pulse);
+    else drawNeuralPulse(ctx,W,H,cx,cy,col,pulse);
+
+    bioAF=requestAnimationFrame(drawBio);
+  }
+
+  // STYLE 0: Hexagonal cell mesh - tissue at microscopic scale
+  function drawCellMesh(ctx,W,H,cx,cy,col,pulse){
+    const R=110*pulse;
+    // Outer glow
+    const glow=ctx.createRadialGradient(cx,cy,R*0.5,cx,cy,R*1.3);
+    glow.addColorStop(0,`rgba(${col.r},${col.g},${col.b},0.12)`);
+    glow.addColorStop(1,`rgba(${col.r},${col.g},${col.b},0)`);
+    ctx.fillStyle=glow;
+    ctx.fillRect(0,0,W,H);
+
+    // Clip to circle
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.clip();
+
+    // Dark background
+    const bg=ctx.createRadialGradient(cx*0.85,cy*0.85,0,cx,cy,R);
+    bg.addColorStop(0,`rgba(35,15,8,1)`);
+    bg.addColorStop(1,`rgba(12,5,2,1)`);
+    ctx.fillStyle=bg;
+    ctx.fillRect(0,0,W,H);
+
+    // Hexagonal grid - slowly rotating
+    const hexR=22;
+    const rows=10, cols2=10;
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(bioT*0.05);
+    ctx.translate(-cx,-cy);
+
+    for(let row=-rows;row<=rows;row++){
+      for(let col2=-cols2;col2<=cols2;col2++){
+        const x=cx + col2*hexR*1.73 + (row%2)*hexR*0.865;
+        const y=cy + row*hexR*1.5;
+        const dist=Math.sqrt((x-cx)**2+(y-cy)**2);
+        if(dist>R*1.1) continue;
+
+        const wave=Math.sin(bioT*2+dist*0.04)*0.5+0.5;
+        const alpha=(1-dist/R)*0.4*wave+0.05;
+
+        ctx.beginPath();
+        for(let i=0;i<6;i++){
+          const angle=(i/6)*Math.PI*2-Math.PI/6;
+          const hx=x+Math.cos(angle)*hexR*0.88;
+          const hy=y+Math.sin(angle)*hexR*0.88;
+          i===0?ctx.moveTo(hx,hy):ctx.lineTo(hx,hy);
+        }
+        ctx.closePath();
+        ctx.strokeStyle=`rgba(${col.r},${col.g},${col.b},${alpha*1.5})`;
+        ctx.lineWidth=0.8;
+        ctx.stroke();
+
+        // Cell nucleus dot
+        if(dist<R*0.85){
+          const nucAlpha=(1-dist/R)*0.3*wave;
+          ctx.beginPath();
+          ctx.arc(x,y,2.5,0,Math.PI*2);
+          ctx.fillStyle=`rgba(${col.r},${col.g},${col.b},${nucAlpha})`;
+          ctx.fill();
+        }
+      }
+    }
+    ctx.restore();
+
+    // Inner glow
+    const inner=ctx.createRadialGradient(cx-R*0.2,cy-R*0.2,0,cx,cy,R*0.7);
+    inner.addColorStop(0,`rgba(${col.r},${col.g},${col.b},0.15)`);
+    inner.addColorStop(1,`rgba(${col.r},${col.g},${col.b},0)`);
+    ctx.fillStyle=inner;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.restore();
+
+    // Edge ring
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(${col.r},${col.g},${col.b},0.4)`;
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+
+    // Shine
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.clip();
+    const shine=ctx.createRadialGradient(cx-R*0.3,cy-R*0.35,0,cx-R*0.1,cy-R*0.1,R*0.5);
+    shine.addColorStop(0,'rgba(255,255,255,0.08)');
+    shine.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=shine;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+
+  // STYLE 1: Collagen fiber weave - tendon/connective tissue
+  function drawFiberWeave(ctx,W,H,cx,cy,col,pulse){
+    const R=110*pulse;
+    const glow=ctx.createRadialGradient(cx,cy,R*0.4,cx,cy,R*1.4);
+    glow.addColorStop(0,`rgba(${col.r},${col.g},${col.b},0.15)`);
+    glow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=glow;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.clip();
+
+    const bg=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+    bg.addColorStop(0,'rgba(25,10,5,1)');
+    bg.addColorStop(1,'rgba(8,3,1,1)');
+    ctx.fillStyle=bg;
+    ctx.fillRect(0,0,W,H);
+
+    // Draw wavy fiber bundles
+    const numFibers=16;
+    for(let f=0;f<numFibers;f++){
+      const angle=(f/numFibers)*Math.PI;
+      const wave=Math.sin(bioT*1.5+f*0.4)*8;
+      const alpha=0.15+Math.sin(bioT*2+f*0.7)*0.1;
+
+      ctx.beginPath();
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.rotate(angle);
+
+      // Wavy fiber line
+      ctx.moveTo(-R,wave);
+      for(let x2=-R;x2<=R;x2+=4){
+        const y2=Math.sin(x2*0.05+bioT*2+f)*12+wave;
+        ctx.lineTo(x2,y2);
+      }
+      ctx.strokeStyle=`rgba(${col.r},${col.g},${col.b},${alpha})`;
+      ctx.lineWidth=1.2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Cross-link dots
+    for(let i=0;i<30;i++){
+      const a=(i/30)*Math.PI*2+bioT*0.2;
+      const r=R*(0.2+((i*17)%10)/20);
+      const x=cx+Math.cos(a)*r;
+      const y=cy+Math.sin(a)*r;
+      const alpha=0.2+Math.sin(bioT*3+i)*0.15;
+      ctx.beginPath();
+      ctx.arc(x,y,1.5,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${col.r},${col.g},${col.b},${alpha})`;
+      ctx.fill();
+    }
+
+    const inner=ctx.createRadialGradient(cx,cy,0,cx,cy,R*0.6);
+    inner.addColorStop(0,`rgba(${col.r},${col.g},${col.b},0.1)`);
+    inner.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=inner;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(${col.r},${col.g},${col.b},0.5)`;
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+  }
+
+  // STYLE 2: Neural pulse network
+  function drawNeuralPulse(ctx,W,H,cx,cy,col,pulse){
+    const R=110*pulse;
+    const glow=ctx.createRadialGradient(cx,cy,R*0.3,cx,cy,R*1.5);
+    glow.addColorStop(0,`rgba(${col.r},${col.g},${col.b},0.18)`);
+    glow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=glow;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.clip();
+
+    ctx.fillStyle='rgba(5,8,20,1)';
+    ctx.fillRect(0,0,W,H);
+
+    // Neural nodes - fixed positions based on seed
+    const nodes=[];
+    for(let i=0;i<14;i++){
+      const a=(i/14)*Math.PI*2+(i%3)*0.3;
+      const r=R*(0.15+((i*13)%10)/18);
+      nodes.push({
+        x:cx+Math.cos(a)*r,
+        y:cy+Math.sin(a)*r,
+        phase:i*0.7
+      });
+    }
+    nodes.push({x:cx,y:cy,phase:0}); // center node
+
+    // Draw connections
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx=nodes[i].x-nodes[j].x;
+        const dy=nodes[i].y-nodes[j].y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist>R*0.65) continue;
+        const pulse2=Math.sin(bioT*3+nodes[i].phase+nodes[j].phase)*0.5+0.5;
+        const alpha=(1-dist/(R*0.65))*0.25*pulse2;
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x,nodes[i].y);
+        ctx.lineTo(nodes[j].x,nodes[j].y);
+        ctx.strokeStyle=`rgba(${col.r},${col.g},${col.b},${alpha})`;
+        ctx.lineWidth=0.8;
+        ctx.stroke();
+      }
+    }
+
+    // Draw nodes
+    for(let i=0;i<nodes.length;i++){
+      const pulse2=Math.sin(bioT*2.5+nodes[i].phase)*0.5+0.5;
+      const size=i===nodes.length-1?5:2.5+pulse2*1.5;
+      const alpha=0.4+pulse2*0.5;
+
+      // Node glow
+      const ng=ctx.createRadialGradient(nodes[i].x,nodes[i].y,0,nodes[i].x,nodes[i].y,size*3);
+      ng.addColorStop(0,`rgba(${col.r},${col.g},${col.b},${alpha*0.4})`);
+      ng.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=ng;
+      ctx.beginPath();
+      ctx.arc(nodes[i].x,nodes[i].y,size*3,0,Math.PI*2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(nodes[i].x,nodes[i].y,size,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${col.r},${col.g},${col.b},${alpha})`;
+      ctx.fill();
+    }
+
+    // Pulse ring from center
+    const ringR=(bioT%2)/2*R;
+    const ringAlpha=0.3*(1-ringR/R);
+    if(ringAlpha>0){
+      ctx.beginPath();
+      ctx.arc(cx,cy,ringR,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(${col.r},${col.g},${col.b},${ringAlpha})`;
+      ctx.lineWidth=1;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(${col.r},${col.g},${col.b},0.4)`;
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+  }
+
+  function startBioCanvas(){
+    if(bioAF)cancelAnimationFrame(bioAF);
+    drawBio();
+  }
+
+  function stopBioCanvas(){
+    if(bioAF)cancelAnimationFrame(bioAF);
+    bioAF=null;
+  }
+
+  // Update bio canvas state when talk mode changes
+  function setBioState(s){
+    bioState=s;
+  }
+
+  function setTalkBtn(label, isActive){
+    const btn=document.getElementById('talkMicBtn');
+    const icon=document.getElementById('talkBtnIcon');
+    if(btn){
+      btn.style.background=isActive?'#cc3300':'var(--or)';
+      btn.style.boxShadow=isActive?'0 4px 20px rgba(204,51,0,0.5)':'0 4px 20px rgba(246,105,42,0.4)';
+    }
+    if(icon){
+      icon.innerHTML=isActive
+        ?'<rect x="6" y="6" width="12" height="12" rx="2" fill="white"/>'
+        :'<rect x="9" y="2" width="6" height="11" rx="3" fill="white"/><path d="M5 10a7 7 0 0 0 14 0" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="21" x2="15" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/>';
+    }
+  }
+
+  function setTalkStatus(text, mode){
+    orbMode=mode||'idle';
+    bioState=mode||'idle';
+    const status=document.getElementById('talkStatus');
+    if(status) status.textContent=text;
+    const homeOrb=document.getElementById('homeOrb');
+    if(homeOrb) homeOrb.className='home-orb'+(mode&&mode!=='idle'?' '+mode:'');
+    const orbLabel=document.getElementById('homeOrbLabel');
+    if(orbLabel){
+      const labels={idle:'Talk to Coach',listening:'Listening...',thinking:'Thinking...',speaking:'Speaking...',stopped:'Talk to Coach'};
+      const div=orbLabel.querySelector('div');
+      if(div) div.textContent=labels[mode]||'Talk to Coach';
+    }
+  }
+
+  function endTalk(){
+    talkActive=false;
+    talkRunning=false;
+    if(talkRec)try{talkRec.stop();}catch(e){}
+    _talkAudio.pause();
+    window.speechSynthesis.cancel();
+    talkMessages=[];
+    stopOrb();
+    show('modeScreen');
+  }
+
+  function startVoiceMode(){show('mainScreen');switchTab('record');}
+  function startTypeMode(){show('typeScreen');setTimeout(()=>$('typeInput')?.focus(),300);}
+  function showLog(){show('mainScreen');switchTab('log');}
+
+  async function submitTypeLog() {
+    const text = $('typeInput').value.trim();
+    if(!text) return;
+    const btn = $('typeSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    const now = new Date();
+    const ds = now.toISOString().slice(0,10);
+    const tDisp = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    await structureClaudeType(text, ds, tDisp);
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Structure with AI`;
+  }
+
+  async function structureClaudeType(text, date, time) {
+    const typeAiBox = $('typeAiBox');
+    const typeAiSpin = $('typeAiSpin');
+    const typeAiHdTxt = $('typeAiHdTxt');
+    const typeAiRows = $('typeAiRows');
+    typeAiBox.classList.add('on');
+    typeAiSpin.style.display='block';
+    typeAiHdTxt.textContent='Reading your history...';
+    typeAiRows.innerHTML='<div style="font-size:13px;color:var(--g);display:flex;align-items:center;gap:8px"><div class="spin"></div>Pulling last 14 sessions...</div>';
+
+    const history=await sbFetchRecent(14);
+    const historySummary=buildHistorySummary(history);
+    typeAiHdTxt.textContent='AI Coaching...';
+    typeAiRows.innerHTML='<div style="font-size:13px;color:var(--g);display:flex;align-items:center;gap:8px"><div class="spin"></div>Applying framework...</div>';
+
+    const ctxLine=userContext?`\nUser profile: ${userContext}`:'';
+    const userMessage=`${ctxLine}
+
+SESSION HISTORY (most recent first):
+${historySummary}
+
+TODAY'S SESSION (written log):
+"${text}"
+Date: ${date} | Time: ${time}
+
+Return ONLY a JSON object:
+- exercise_focus, activity_type, key_observation, how_it_felt, next_focus, summary
+- coach_response: 2-3 sentence spoken coach response. Apply auto-regulation. Reference history if relevant. Forward-facing only. No guilt.
+- auto_regulation_signal: progress / back_off / maintain / re_establish / investigate
+- recommended_next_session: one sentence about highest value next session
+
+Return only valid JSON.`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body: JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:1500,
+          system:RA_SYSTEM_PROMPT,
+          messages:[{role:'user',content:userMessage}]
+        })
+      });
+      const data = await res.json();
+      if(data.error){typeAiSpin.style.display='none';typeAiHdTxt.textContent='Error';typeAiRows.innerHTML=`<div style="color:var(--g);font-size:13px">${data.error.message}</div>`;return;}
+      const parsed = JSON.parse((data.content?.[0]?.text||'').replace(/```json|```/g,'').trim());
+      const entry = {
+        user_id:currentUser.id,user_name:currentUser.user_metadata?.full_name||currentUser.email,
+        date,time,duration:'—',transcript:text,
+        exercise_focus:parsed.exercise_focus||'',activity_type:parsed.activity_type||'',
+        key_observation:parsed.key_observation||'',how_it_felt:parsed.how_it_felt||'',
+        next_focus:parsed.next_focus||'',summary:parsed.summary||''
+      };
+      typeAiSpin.style.display='none';
+
+      const signalColors={progress:'#34C759',back_off:'#FF9500',maintain:'#6B6B6B',re_establish:'#5AC8FA',investigate:'#FF6B6B'};
+      const signalLabels={progress:'↑ Progress — push forward',back_off:'↓ Back off — reduce dose',maintain:'→ Maintain — steady state',re_establish:'↺ Re-establish — rebuild signal',investigate:'? Investigate — check the pathway'};
+      const signal=parsed.auto_regulation_signal||'maintain';
+      const sc=signalColors[signal]||'#6B6B6B';
+      const sl=signalLabels[signal]||signal;
+
+      typeAiRows.innerHTML=`
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:100px;background:${sc}18;border:1px solid ${sc}40;margin-bottom:4px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:${sc};"></div>
+          <span style="font-size:11px;font-weight:700;color:${sc};letter-spacing:0.06em;">${sl}</span>
+        </div>
+        ${['exercise_focus','activity_type','key_observation','how_it_felt','next_focus','summary'].map(k=>`<div class="ai-r"><div class="ai-rl">${k.replace(/_/g,' ')}</div><div class="ai-rv">${parsed[k]||'—'}</div></div>`).join('')}
+        ${parsed.recommended_next_session?`<div class="ai-r" style="border-top:1px solid var(--b1);padding-top:10px;"><div class="ai-rl">Next Session</div><div class="ai-rv" style="color:#34C759;">${parsed.recommended_next_session}</div></div>`:''}
+      `;
+      const saved = await sbInsert(entry);
+      typeAiHdTxt.textContent = saved ? 'Structured — saved' : 'Structured — save failed';
+      updateLogBadge();
+      if(parsed.coach_response) speakResponse(parsed.coach_response);
+    } catch(e) {
+      typeAiSpin.style.display='none';typeAiHdTxt.textContent='Error';
+      typeAiRows.innerHTML=`<div style="color:var(--g);font-size:13px">Could not connect to Claude.</div>`;
+    }
+  }
+
+  async function signInWithGoogle() {
+    await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+  }
+
+  async function signOut() {
+    await sb.auth.signOut();
+    show('loginScreen');
+  }
+
+  function saveContext() {
+    const ctx2 = $('contextInput').value.trim();
+    userContext = ctx2;
+    localStorage.setItem(`ra_ctx_${currentUser.id}`, ctx2);
+    show('modeScreen');
+    updateLogBadge();
+    setTimeout(startBioCanvas, 100);
+  }
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+
+  // TABS
+  function switchTab(t) {
+    $('tabRecord').classList.toggle('active', t==='record');
+    $('tabLog').classList.toggle('active', t==='log');
+    $('panelRecord').classList.toggle('active', t==='record');
+    $('panelLog').classList.toggle('active', t==='log');
+    if (t==='log') loadLog();
+  }
+
+  // SUPABASE
+  async function getAuthHeaders() {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session?.access_token || SB_KEY;
+    return {
+      'Content-Type': 'application/json',
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${token}`
+    };
+  }
+
+  function sbHeaders() {
+    return {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`};
+  }
+
+  async function sbInsert(entry) {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${SB_URL}/rest/v1/sessions`, {
+        method: 'POST',
+        headers: {...headers, 'Prefer': 'return=representation'},
+        body: JSON.stringify(entry)
+      });
+      return res.ok;
+    } catch(e) { return false; }
+  }
+
+  async function sbFetch() {
+    try {
+      const userId = currentUser?.id;
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${SB_URL}/rest/v1/sessions?user_id=eq.${userId}&order=created_at.desc&limit=200`, {headers});
+      if (!res.ok) return [];
+      return await res.json();
+    } catch(e) { return []; }
+  }
+
+  async function sbDelete(id) {
+    try {
+      const headers = await getAuthHeaders();
+      await fetch(`${SB_URL}/rest/v1/sessions?id=eq.${id}`, {method:'DELETE', headers});
+    } catch(e) {}
+  }
+
+  async function sbFetchRecent(limit=14){
+    try{
+      const userId=currentUser?.id;
+      const headers=await getAuthHeaders();
+      const res=await fetch(`${SB_URL}/rest/v1/sessions?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`,{headers});
+      if(!res.ok)return[];
+      return await res.json();
+    }catch(e){return[];}
+  }
+
+  // RECORDING
+  function ft(s){return`${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;}
+
+  function setStatus(label,mode){
+    pillTxt.textContent=label;
+    pill.className='pill'+(mode==='rec'?' rec':mode==='done'?' done':'');
+  }
+
+  function getMime(){
+    const ios=/iPad|iPhone|iPod/.test(navigator.userAgent);
+    const list=ios?['audio/mp4','audio/aac','audio/webm']:['audio/ogg;codecs=vorbis','audio/webm','audio/ogg','audio/mp4'];
+    for(const t of list)if(MediaRecorder.isTypeSupported(t))return t;
+    return'';
+  }
+
+  function getExt(m){if(m.includes('mp4')||m.includes('aac'))return'm4a';if(m.includes('ogg'))return'ogg';return'webm';}
+
+  function setupSpeechRec(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR)return null;
+    const r=new SR();r.continuous=true;r.interimResults=true;r.lang='en-US';
+    r.onresult=e=>{
+      let int='',fin='';
+      for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;e.results[i].isFinal?fin+=t+' ':int+=t;}
+      if(fin)full+=fin;tx.value=full+int;tx.scrollTop=tx.scrollHeight;
+    };
+    r.onerror=e=>{if(e.error!=='no-speech')console.warn(e.error);};
+    r.onend=()=>{if(mr?.state==='recording'){try{r.start();}catch(e){}}};
+    return r;
+  }
+
+  let persistentStream = null; // Keep stream alive between recordings on iOS
+
+  async function toggleRec(){
+    if(mr && mr.state==='recording') stopRec();
+    else await startRec();
+  }
+
+  async function startRec(){
+    // On iOS keep stream alive between recordings
+    const ios=/iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(!persistentStream || persistentStream.getTracks().some(t=>t.readyState==='ended')){
+      try{
+        persistentStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      }catch(e){
+        alert('Microphone access denied.');
+        return;
+      }
+    }
+    stream=persistentStream;
+
+    chunks=[];full='';tx.value='';
+    aiBox.classList.remove('on');arow.classList.remove('on');
+    clearBtn.disabled=true;copyBtn.disabled=true;
+
+    if(!ac || ac.state==='closed'){
+      ac=new(window.AudioContext||window.webkitAudioContext)();
+    }
+    an=ac.createAnalyser();an.fftSize=2048;
+    ac.createMediaStreamSource(stream).connect(an);drawWave();
+
+    const mime=getMime();
+    mr=new MediaRecorder(stream,mime?{mimeType:mime}:{});
+    mr.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
+    mr.onstop=handleStop;mr.start(1000);
+
+    recognition=setupSpeechRec();
+    if(recognition)try{recognition.start();}catch(e){}
+
+    secs=0;timerEl.textContent='00:00';timerEl.classList.add('rec');
+    ti=setInterval(()=>{secs++;timerEl.textContent=ft(secs);},1000);
+    rbtn.classList.add('rec');ring.classList.add('pulse');setStatus('Recording','rec');
+  }
+
+  function stopRec(){
+    if(recognition)try{recognition.stop();}catch(e){}
+    recognition=null;
+    clearInterval(ti);cancelAnimationFrame(af);
+    // Stop MediaRecorder but keep stream alive for next recording
+    if(mr && mr.state!=='inactive') mr.stop();
+    timerEl.classList.remove('rec');rbtn.classList.remove('rec');ring.classList.remove('pulse');
+    setStatus('Processing...','');drawIdle();
+  }
+
+  async function handleStop(){
+    const mime=mr?.mimeType||chunks[0]?.type||'audio/webm';
+    const ext=getExt(mime);
+    const blob=new Blob(chunks,{type:mime});
+    const url=URL.createObjectURL(blob);
+    const size=(blob.size/1024).toFixed(0);
+    const now=new Date();
+    const ds=now.toISOString().slice(0,10);
+    const ts=now.toTimeString().slice(0,5).replace(':','-');
+    const tDisp=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const fname=`RA-Log_${ds}_${ts}.${ext}`;
+    alink.href=url;alink.download=fname;
+    aname.textContent=fname;ameta.textContent=`${ft(secs)} · ${size} KB`;
+    arow.classList.add('on');
+    const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(!isIOS)alink.click();
+    clearBtn.disabled=false;
+    if(tx.value.trim())copyBtn.disabled=false;
+    const transcript=tx.value.trim();
+    if(transcript){
+      await structureClaude(transcript,ds,ft(secs),tDisp);
+    }else{
+      setStatus('Done','done');
+    }
+  }
+
+  // CLAUDE
+  async function sbFetchRecent(limit=14){
+    try{
+      const userId=currentUser?.id;
+      const res=await fetch(`${SB_URL}/rest/v1/sessions?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`,{headers:sbHeaders()});
+      if(!res.ok)return[];
+      return await res.json();
+    }catch(e){return[];}
+  }
+
+  function buildHistorySummary(sessions){
+    if(!sessions.length)return'No previous sessions logged yet. This is their first session.';
+    const count=sessions.length;
+    const oldest=sessions[sessions.length-1];
+    const newest=sessions[0];
+    const daysSinceLast=Math.round((Date.now()-new Date(newest.created_at).getTime())/(1000*60*60*24));
+    const rows=sessions.slice(0,14).map((s,i)=>`Session ${i+1} (${s.date} ${s.time||''}): Focus: ${s.exercise_focus||'?'} | Type: ${s.activity_type||'?'} | Felt: ${s.how_it_felt||'?'} | Observation: ${s.key_observation||'?'} | Summary: ${s.summary||'?'}`).join('\n');
+    return `Last ${count} sessions on record. Days since last session: ${daysSinceLast}.\n\n${rows}`;
+  }
+
+  const RA_SYSTEM_PROMPT=`You are the Real Tracking intelligence layer. Your role is not to coach, prescribe, or direct. Your role is to read biological signals, identify patterns, and present the facts clearly so the person can make an informed decision about their own body.
+
+You think from the Real Adaptation framework — built on 20+ years of systematic self-experimentation resolving 12+ chronic MSK conditions through one principle: tissue adapts to the demands placed on it, or it doesn't. Every chronic condition has a primary bottleneck. Find it. The rest follows.
+
+YOUR CORE ROLE — INFORMATION, NOT INSTRUCTION:
+You present what the data shows. You explain the biological mechanism behind it. You lay out what the pattern suggests. Then you stop. The person decides what to do with that information. This is not a limitation — it is the correct approach. A person who understands their own biology makes better decisions than one following instructions.
+
+Never say "you should." Never say "I recommend." Never say "make sure you." Instead say: "The pattern shows..." "The biology here is..." "What this suggests is..." "That's your call based on..."
+
+BIOLOGICAL LAWS YOU REASON FROM:
+- Wolff's Law: bone and connective tissue remodel in response to mechanical load
+- Davis's Law: soft tissue adapts to the mechanical demands placed on it
+- SAID Principle: Specific Adaptation to Imposed Demands — tissue adapts to exactly what you do, not adjacent things
+- Arndt-Schulz Law: sub-threshold stimulus = no adaptation. Threshold stimulus = adaptation. Above tolerance = damage.
+- Neural inhibition: the nervous system can suppress muscle activation independent of structural damage. Being pain-free does not mean the inhibition has resolved.
+- Repair signal non-substitutability: the specific mechanical stimulus required for adaptation cannot be replaced by a different stimulus, no matter the volume.
+
+FIVE BIOLOGICAL MECHANISMS ACROSS MSK CONDITIONS:
+1. Neural inhibition — muscle exists but nervous system won't fire it properly (lower back / multifidus)
+2. Functional range deficit — tissue never loaded through the range it needs to adapt (Achilles, ankles)
+3. Muscle imbalance — dominant pattern creates chronic tension in opposing tissue (shoulder, knees, upper back, neck, plantar fascia, hip)
+4. Scar tissue restriction — accumulated adhesions block the adaptation signal (hamstrings, ankles)
+5. Weakness plus restricted range — combined deficit requires both range restoration and progressive loading (knees, big toe)
+
+HOW YOU READ THE DATA:
+- Look at the full session history before responding to anything
+- Identify the signal trend: is the tissue responding, flatlined, or deteriorating?
+- Factor in lifestyle data if captured: sleep, stress, sitting, footwear, nutrition all affect the tissue environment
+- Cross-reference what they did with what the biology would predict
+- Identify the pattern. State it. Don't editorialize.
+
+PATTERN SIGNALS:
+- Progressive load + improving symptoms = adaptation signal landing. State this.
+- Progressive load + flat symptoms = pathway may not be reaching the target tissue. State this.
+- Progressive load + worsening = above tolerance threshold or wrong target. State this.
+- Inconsistent load + good days = signal is arriving but not sustained. State this.
+- Long gap in logging = re-establish signal, reduce load expectations. State this without judgment.
+
+ON HABITS AND LIFESTYLE:
+Sleep, footwear, sitting duration, stress, nutrition — these are not peripheral. They determine whether the training signal lands or gets blocked. If the person mentions them, factor them explicitly into the pattern read. "Your session was solid but 5 hours of sleep before loading work means the tissue repair environment was compromised. That's why the response feels slower than the load would predict."
+
+LANGUAGE RULES (non-negotiable):
+- Never mention missed sessions unless the person raises it
+- Never use: "you should," "make sure," "don't forget," "keep it up," "great job," "back on track"
+- Never compare current state to a previous peak
+- Never imply failure of any kind
+- Always work from where the person is right now
+- Use: "the pattern shows," "the biology here is," "what the data suggests," "that's your call"
+- Be specific to what they actually said. Generic responses are useless.
+
+WHAT YOU NEVER DO:
+- Prescribe a specific exercise protocol unprompted
+- Tell someone what they must do
+- Validate unsafe choices to avoid conflict
+- Give generic advice that applies to anyone
+- Skip the pattern read and jump straight to a statement
+- Make the person feel observed or judged`;
+
+  async function structureClaude(transcript,date,duration,time){
+    aiBox.classList.add('on');
+    aiSpin.style.display='block';
+    aiHdTxt.textContent='Reading your history...';
+    aiRows.innerHTML='<div style="font-size:13px;color:var(--g);display:flex;align-items:center;gap:8px"><div class="spin"></div>Pulling last 14 sessions...</div>';
+
+    const history=await sbFetchRecent(14);
+    const historySummary=buildHistorySummary(history);
+
+    aiHdTxt.textContent='AI Coaching...';
+    aiRows.innerHTML='<div style="font-size:13px;color:var(--g);display:flex;align-items:center;gap:8px"><div class="spin"></div>Applying framework...</div>';
+
+    const ctxLine=userContext?`\nUser profile: ${userContext}`:'';
+
+    const userMessage=`${ctxLine}
+
+SESSION HISTORY (most recent first):
+${historySummary}
+
+TODAY'S SESSION:
+Transcript: "${transcript}"
+Date: ${date} | Time: ${time} | Duration: ${duration}
+
+Extract ALL information from the transcript - both training data AND any lifestyle/habit context mentioned.
+
+Return ONLY a JSON object with these fields:
+- exercise_focus: main exercises or muscle groups mentioned
+- activity_type: type of session (Strength / Cardio / Mobility / Mixed / Recovery)
+- key_observation: most important performance or technique note (1-2 sentences)
+- how_it_felt: energy, effort, mood (from what they said)
+- next_focus: what they plan next, or derive from the framework
+- summary: one sentence session summary
+- sleep_quality: if mentioned - Poor / Fair / Good / Great / null if not mentioned
+- sleep_hours: number if mentioned, null if not
+- stress_level: if mentioned - Low / Moderate / High / null if not mentioned
+- footwear_note: any mention of shoes, barefoot, heel elevation, toe separators etc - brief note or null
+- sitting_hours: approximate hours sitting mentioned, null if not
+- nutrition_note: any nutrition or protein mention relevant to recovery, null if not
+- habit_observation: if lifestyle habits were mentioned, one sentence connecting them to tissue adaptation. null if nothing relevant mentioned.
+- coach_response: 2-3 sentences. State what the pattern shows and what the biology behind it is. Do not instruct. Do not prescribe. Do not say "you should." Present the facts. The person decides. If habits were mentioned, factor them into the pattern read explicitly.
+- auto_regulation_signal: one of: "progress" / "back_off" / "maintain" / "re_establish" / "investigate"
+- recommended_next_session: one sentence stating what the data suggests would be the highest-value next session — framed as an observation, not an instruction.
+
+Return only valid JSON. Use null for any field not mentioned in the transcript.`;
+
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:1800,
+          system:RA_SYSTEM_PROMPT,
+          messages:[{role:'user',content:userMessage}]
+        })
+      });
+      const data=await res.json();
+      if(data.error){showAIErr(data.error.message);return;}
+      const parsed=JSON.parse((data.content?.[0]?.text||'').replace(/```json|```/g,'').trim());
+      const entry={
+        user_id:currentUser.id,
+        user_name:currentUser.user_metadata?.full_name||currentUser.email,
+        date,time,duration,transcript,
+        exercise_focus:parsed.exercise_focus||'',
+        activity_type:parsed.activity_type||'',
+        key_observation:parsed.key_observation||'',
+        how_it_felt:parsed.how_it_felt||'',
+        next_focus:parsed.next_focus||'',
+        summary:parsed.summary||'',
+        sleep_quality:parsed.sleep_quality||null,
+        sleep_hours:parsed.sleep_hours||null,
+        stress_level:parsed.stress_level||null,
+        footwear_note:parsed.footwear_note||null,
+        sitting_hours:parsed.sitting_hours||null,
+        nutrition_note:parsed.nutrition_note||null,
+        habit_observation:parsed.habit_observation||null
+      };
+      renderAI(parsed,date,duration);
+      const saved=await sbInsert(entry);
+      aiHdTxt.textContent=saved?'Structured — saved':'Structured — save failed';
+      updateLogBadge();
+      setStatus('Done','done');
+      if(parsed.coach_response) speakResponse(parsed.coach_response);
+    }catch(e){
+      showAIErr('Could not connect to Claude. Check your API key.');
+      setStatus('Done','done');
+    }
+  }
+
+  // VOICE RESPONSE
+  let currentSpeech = null;
+
+  function speakResponse(text){
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utt = new SpeechSynthesisUtterance(text);
+
+    // Pick best available voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v =>
+      v.name.includes('Samantha') ||
+      v.name.includes('Daniel') ||
+      v.name.includes('Karen') ||
+      v.name.includes('Google UK English') ||
+      v.name.includes('Google US English')
+    ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+
+    if(preferred) utt.voice = preferred;
+    utt.rate = 0.95;
+    utt.pitch = 1.0;
+    utt.volume = 1.0;
+
+    // Show speaking indicator
+    showSpeakingIndicator(text);
+
+    utt.onend = () => hideSpeakingIndicator();
+    utt.onerror = () => hideSpeakingIndicator();
+
+    currentSpeech = utt;
+    window.speechSynthesis.speak(utt);
+  }
+
+  function showSpeakingIndicator(text){
+    const existing = $('speakBox');
+    if(existing) existing.remove();
+
+    const box = document.createElement('div');
+    box.id = 'speakBox';
+    box.style.cssText = `
+      width:100%;background:rgba(52,199,89,0.08);border:1px solid rgba(52,199,89,0.25);
+      border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;
+      animation:fadeIn 0.3s ease;
+    `;
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div id="speakWave" style="display:flex;align-items:center;gap:3px;">
+          ${[1,2,3,4,5].map(i=>`<div style="width:3px;height:${8+i*4}px;background:#34C759;border-radius:2px;animation:wavePulse 0.8s ease ${i*0.1}s infinite alternate;"></div>`).join('')}
+        </div>
+        <span style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#34C759;">Coach Response</span>
+        <button onclick="stopSpeaking()" style="margin-left:auto;background:transparent;border:none;color:#6B6B6B;font-size:18px;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <div style="font-size:14px;color:#FFFFFF;line-height:1.6;">${text}</div>
+    `;
+
+    // Insert after aiBox
+    const aiBox2 = $('aiBox');
+    aiBox2.parentNode.insertBefore(box, aiBox2.nextSibling);
+  }
+
+  function hideSpeakingIndicator(){
+    const wave = $('speakWave');
+    if(wave){
+      wave.querySelectorAll('div').forEach(d => d.style.animation = 'none');
+    }
+  }
+
+  function stopSpeaking(){
+    window.speechSynthesis.cancel();
+    hideSpeakingIndicator();
+  }
+
+  function renderAI(d,date,dur){
+    aiSpin.style.display='none';
+
+    const signalColors={
+      'progress':'#34C759','back_off':'#FF9500','maintain':'#6B6B6B',
+      're_establish':'#5AC8FA','investigate':'#FF6B6B'
+    };
+    const signalLabels={
+      'progress':'↑ Progress — push forward',
+      'back_off':'↓ Back off — reduce dose',
+      'maintain':'→ Maintain — steady state',
+      're_establish':'↺ Re-establish — rebuild signal',
+      'investigate':'? Investigate — check the pathway'
+    };
+    const signal=d.auto_regulation_signal||'maintain';
+    const signalColor=signalColors[signal]||'#6B6B6B';
+    const signalLabel=signalLabels[signal]||signal;
+
+    const fields=[
+      {l:'Date',v:date},{l:'Duration',v:dur},
+      {l:'Exercise Focus',v:d.exercise_focus},{l:'Activity Type',v:d.activity_type},
+      {l:'Key Observation',v:d.key_observation},{l:'How It Felt',v:d.how_it_felt},
+      {l:'Next Focus',v:d.next_focus},{l:'Summary',v:d.summary},
+    ];
+
+    // Habit fields - only show if captured
+    const habitFields=[];
+    if(d.sleep_quality||d.sleep_hours) habitFields.push({l:'Sleep',v:[d.sleep_hours?`${d.sleep_hours}h`:'',d.sleep_quality||''].filter(Boolean).join(' · ')});
+    if(d.stress_level) habitFields.push({l:'Stress',v:d.stress_level});
+    if(d.footwear_note) habitFields.push({l:'Footwear',v:d.footwear_note});
+    if(d.sitting_hours) habitFields.push({l:'Sitting',v:`~${d.sitting_hours}h`});
+    if(d.nutrition_note) habitFields.push({l:'Nutrition',v:d.nutrition_note});
+
+    const habitSection = habitFields.length>0 ? `
+      <div style="border-top:1px solid var(--b1);margin-top:8px;padding-top:8px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--g);margin-bottom:6px;">Lifestyle Context</div>
+        ${habitFields.map(f=>`<div class="ai-r"><div class="ai-rl">${f.l}</div><div class="ai-rv">${f.v}</div></div>`).join('')}
+        ${d.habit_observation?`<div class="ai-r"><div class="ai-rl">Pattern</div><div class="ai-rv" style="color:rgba(246,105,42,0.9);font-style:italic;">${d.habit_observation}</div></div>`:''}
+      </div>` : '';
+
+    aiRows.innerHTML=`
+      <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:100px;background:${signalColor}18;border:1px solid ${signalColor}40;margin-bottom:4px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:${signalColor};"></div>
+        <span style="font-size:11px;font-weight:700;color:${signalColor};letter-spacing:0.06em;">${signalLabel}</span>
+      </div>
+      ${fields.map(f=>`<div class="ai-r"><div class="ai-rl">${f.l}</div><div class="ai-rv">${f.v||'—'}</div></div>`).join('')}
+      ${habitSection}
+      ${d.recommended_next_session?`<div class="ai-r" style="border-top:1px solid var(--b1);padding-top:10px;margin-top:2px;"><div class="ai-rl">Next Session</div><div class="ai-rv" style="color:#34C759;">${d.recommended_next_session}</div></div>`:''}
+    `;
+  }
+
+  function showAIErr(msg){
+    aiSpin.style.display='none';aiHdTxt.textContent='AI Error';
+    aiRows.innerHTML=`<div class="ai-rv" style="color:var(--g);font-size:13px">${msg}</div>`;
+  }
+
+  // LOG
+  async function loadLog(){
+    $('logContent').innerHTML=`<div class="loading-row"><div class="spin"></div>Loading sessions...</div>`;
+    cachedLogs=await sbFetch();
+    $('logCount').textContent=`${cachedLogs.length} session${cachedLogs.length!==1?'s':''}`;
+    renderLogTable();
+  }
+
+  function renderLogTable(){
+    const lc=$('logContent');
+    if(cachedLogs.length===0){
+      lc.innerHTML=`<div class="empty-state">
+        <div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 6v6l4 2" stroke="#F6692A" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="#F6692A" stroke-width="2"/></svg></div>
+        <div class="empty-title">No sessions yet</div>
+        <div class="empty-sub">Record your first session and it will appear here automatically.</div>
+      </div>`;
+      return;
+    }
+    lc.innerHTML=`<div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Time</th><th>Duration</th><th>Focus</th><th>Type</th><th>Summary</th><th>How It Felt</th><th>Next Focus</th><th></th></tr></thead>
+      <tbody>${cachedLogs.map((r,i)=>`<tr onclick="openDrawer(${i})">
+        <td class="muted">${r.date||'—'}</td>
+        <td class="muted">${r.time||'—'}</td>
+        <td class="muted">${r.duration||'—'}</td>
+        <td><span class="badge">${r.exercise_focus||'—'}</span></td>
+        <td>${r.activity_type||'—'}</td>
+        <td>${r.summary||'—'}</td>
+        <td>${r.how_it_felt||'—'}</td>
+        <td>${r.next_focus||'—'}</td>
+        <td><button class="del-btn" onclick="event.stopPropagation();deleteEntry('${r.id}',${i})">×</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  async function updateLogBadge(){
+    const logs=await sbFetch();
+    $('logBadge') && ($('logBadge').textContent=logs.length>0?`(${logs.length})`:'');
+    $('logCount') && ($('logCount').textContent=`${logs.length} session${logs.length!==1?'s':''}`);
+    if($('profileSessionCount')) $('profileSessionCount').textContent=`${logs.length} session${logs.length!==1?'s':''}`;
+  }
+
+  let drawerIndex = null;
+
+  function openDrawer(i){
+    drawerIndex = i;
+    const r = cachedLogs[i];
+    renderDrawerView(r, i);
+    $('drawer').classList.add('open');
+  }
+
+  function renderDrawerView(r, i){
+    $('drawerTitle').textContent = `${r.date||''} · ${r.time||''}`;
+    const fields=[
+      {l:'Exercise Focus', k:'exercise_focus', v:r.exercise_focus},
+      {l:'Activity Type', k:'activity_type', v:r.activity_type},
+      {l:'Key Observation', k:'key_observation', v:r.key_observation},
+      {l:'How It Felt', k:'how_it_felt', v:r.how_it_felt},
+      {l:'Next Focus', k:'next_focus', v:r.next_focus},
+      {l:'Summary', k:'summary', v:r.summary},
+      {l:'Full Transcript', k:'transcript', v:r.transcript},
+    ];
+    $('drawerBody').innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--b1);">
+        <div style="font-size:11px;color:var(--g);">${r.duration||''} · ${r.activity_type||''}</div>
+        <button class="drawer-edit-btn" onclick="renderDrawerEdit(${i})">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Edit
+        </button>
+      </div>
+      ${fields.map(f=>`<div class="drawer-row"><div class="drawer-label">${f.l}</div><div class="drawer-val">${f.v||'—'}</div></div>`).join('')}
+      <div class="delete-zone">
+        <button class="drawer-delete-btn" onclick="deleteFromDrawer('${r.id}',${i})">Delete this session</button>
+      </div>
+    `;
+  }
+
+  // UNDO/REDO STATE
+  let undoStack = [];
+  let redoStack = [];
+  const EDIT_FIELDS = ['exercise_focus','activity_type','key_observation','how_it_felt','next_focus','summary','transcript'];
+
+  function getFormState(){
+    const state={};
+    EDIT_FIELDS.forEach(k=>{
+      const el=document.getElementById(`edit_${k}`);
+      if(el) state[k]=el.value;
+    });
+    return state;
+  }
+
+  function applyFormState(state){
+    EDIT_FIELDS.forEach(k=>{
+      const el=document.getElementById(`edit_${k}`);
+      if(el && state[k]!==undefined) el.value=state[k];
+    });
+    updateUndoRedoBtns();
+  }
+
+  function pushUndo(){
+    undoStack.push(getFormState());
+    if(undoStack.length>50) undoStack.shift();
+    redoStack=[];
+    updateUndoRedoBtns();
+  }
+
+  function undoEdit(){
+    if(!undoStack.length) return;
+    redoStack.push(getFormState());
+    applyFormState(undoStack.pop());
+  }
+
+  function redoEdit(){
+    if(!redoStack.length) return;
+    undoStack.push(getFormState());
+    applyFormState(redoStack.pop());
+  }
+
+  function updateUndoRedoBtns(){
+    const undoBtn=document.getElementById('undoBtn');
+    const redoBtn=document.getElementById('redoBtn');
+    if(undoBtn) undoBtn.disabled=undoStack.length===0;
+    if(redoBtn) redoBtn.disabled=redoStack.length===0;
+  }
+
+  function renderDrawerEdit(i){
+    undoStack=[];
+    redoStack=[];
+    const r = cachedLogs[i];
+    const editFields=[
+      {l:'Exercise Focus', k:'exercise_focus', v:r.exercise_focus, rows:1},
+      {l:'Activity Type', k:'activity_type', v:r.activity_type, rows:1},
+      {l:'Key Observation', k:'key_observation', v:r.key_observation, rows:2},
+      {l:'How It Felt', k:'how_it_felt', v:r.how_it_felt, rows:2},
+      {l:'Next Focus', k:'next_focus', v:r.next_focus, rows:1},
+      {l:'Summary', k:'summary', v:r.summary, rows:2},
+      {l:'Full Transcript', k:'transcript', v:r.transcript, rows:4},
+    ];
+    $('drawerBody').innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--b1);margin-bottom:4px;">
+        <div style="font-size:11px;color:var(--or);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Editing</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button id="undoBtn" onclick="undoEdit()" disabled title="Undo" style="width:30px;height:30px;background:var(--dark2);border:1px solid var(--b2);border-radius:6px;color:var(--g);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-family:'Inter',sans-serif;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M3 7h12a6 6 0 0 1 0 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 7l4-4M3 7l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button id="redoBtn" onclick="redoEdit()" disabled title="Redo" style="width:30px;height:30px;background:var(--dark2);border:1px solid var(--b2);border-radius:6px;color:var(--g);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-family:'Inter',sans-serif;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 7H9a6 6 0 0 0 0 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 7l-4-4M21 7l-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+      ${editFields.map(f=>`
+        <div class="drawer-row">
+          <div class="drawer-label">${f.l}</div>
+          <textarea class="drawer-field-edit" id="edit_${f.k}" rows="${f.rows}"
+            oninput="pushUndo()"
+          >${f.v||''}</textarea>
+        </div>
+      `).join('')}
+      <div class="edit-actions">
+        <button class="drawer-cancel-btn" onclick="renderDrawerView(cachedLogs[${i}],${i})">Cancel</button>
+        <button class="drawer-save-btn" onclick="saveDrawerEdit('${r.id}',${i})">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Save Changes
+        </button>
+      </div>
+      <div class="delete-zone">
+        <button class="drawer-delete-btn" onclick="deleteFromDrawer('${r.id}',${i})">Delete this session</button>
+      </div>
+    `;
+
+    // Keyboard shortcuts
+    $('drawer').onkeydown = e => {
+      if((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey){e.preventDefault();undoEdit();}
+      if((e.ctrlKey||e.metaKey) && (e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redoEdit();}
+    };
+
+    updateUndoRedoBtns();
+  }
+
+  async function saveDrawerEdit(id, i){
+    const fields=['exercise_focus','activity_type','key_observation','how_it_felt','next_focus','summary','transcript'];
+    const updates={};
+    fields.forEach(k=>{
+      const el = document.getElementById(`edit_${k}`);
+      if(el) updates[k] = el.value.trim();
+    });
+
+    try{
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${SB_URL}/rest/v1/sessions?id=eq.${id}`,{
+        method:'PATCH',
+        headers:{...headers,'Prefer':'return=representation'},
+        body:JSON.stringify(updates)
+      });
+      if(res.ok){
+        // Update local cache
+        cachedLogs[i] = {...cachedLogs[i], ...updates};
+        renderDrawerView(cachedLogs[i], i);
+        renderLogTable();
+        // Flash saved confirmation
+        const title = $('drawerTitle');
+        const orig = title.textContent;
+        title.textContent = '✓ Saved';
+        title.style.color = 'var(--gr)';
+        setTimeout(()=>{ title.textContent = orig; title.style.color = ''; }, 2000);
+      }
+    }catch(e){
+      alert('Could not save changes. Please try again.');
+    }
+  }
+
+  async function deleteFromDrawer(id, i){
+    if(!confirm('Delete this session? This cannot be undone.'))return;
+    await sbDelete(id);
+    cachedLogs.splice(i,1);
+    $('drawer').classList.remove('open');
+    $('logCount').textContent=`${cachedLogs.length} session${cachedLogs.length!==1?'s':''}`;
+    renderLogTable();
+  }
+
+  function closeDrawer(e){if(e.target===$('drawer'))$('drawer').classList.remove('open');}
+  function closeDrawerDirect(){$('drawer').classList.remove('open');}
+
+  async function deleteEntry(id,i){
+    if(!confirm('Delete this session?'))return;
+    await sbDelete(id);
+    cachedLogs.splice(i,1);
+    $('logCount').textContent=`${cachedLogs.length} session${cachedLogs.length!==1?'s':''}`;
+    renderLogTable();
+  }
+
+  async function clearLog(){
+    if(!confirm('Delete ALL your sessions? This cannot be undone.'))return;
+    for(const r of cachedLogs)await sbDelete(r.id);
+    cachedLogs=[];
+    $('logCount').textContent='0 sessions';
+    renderLogTable();
+  }
+
+  function exportCSV(){
+    if(!cachedLogs.length){alert('No sessions to export.');return;}
+    const cols=['date','time','duration','exercise_focus','activity_type','summary','how_it_felt','next_focus','key_observation','transcript'];
+    const csv=[cols.join(','),...cachedLogs.map(r=>cols.map(c=>`"${(r[c]||'').replace(/"/g,'""')}"`).join(','))].join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download=`RA-Log-Export_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  }
+
+  // CANVAS
+  function drawIdle(){
+    canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.beginPath();ctx.moveTo(0,canvas.height/2);ctx.lineTo(canvas.width,canvas.height/2);
+    ctx.strokeStyle='#2E2E2E';ctx.lineWidth=1;ctx.stroke();
+  }
+
+  function drawWave(){
+    if(!an)return;
+    af=requestAnimationFrame(drawWave);
+    canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
+    const buf=new Uint8Array(an.frequencyBinCount);an.getByteTimeDomainData(buf);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.lineWidth=2;ctx.strokeStyle='#F6692A';ctx.beginPath();
+    const sw=canvas.width/buf.length;let x=0;
+    buf.forEach((v,i)=>{const y=(v/128)*canvas.height/2;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);x+=sw;});
+    ctx.lineTo(canvas.width,canvas.height/2);ctx.stroke();
+  }
+
+  function clearAll(){
+    tx.value='';full='';aiBox.classList.remove('on');arow.classList.remove('on');
+    timerEl.textContent='00:00';setStatus('Ready','');
+    clearBtn.disabled=true;copyBtn.disabled=true;drawIdle();
+  }
+
+  function copyTx(){
+    const t=tx.value.trim();if(!t)return;
+    navigator.clipboard.writeText(t).then(()=>{copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy Transcript',2000);});
+  }
+
+  // Also need user_id column in Supabase
+  // Run this in SQL editor: ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_id uuid;
+
+  init();
+</script>
+</body>
+</html>
