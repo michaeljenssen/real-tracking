@@ -9,129 +9,278 @@
 <meta name="apple-mobile-web-app-title" content="Real Tracking">
 <meta name="theme-color" content="#000000">
 <title>Real Tracking</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF Pro Display','Inter',sans-serif;overflow:hidden;}
+  html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;overflow:hidden;}
 
-/* SCREENS */
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity 0.2s;}
 .screen.active{opacity:1;pointer-events:all;}
 
-/* LOGIN */
-#loginScreen{align-items:center;justify-content:center;padding:32px;}
-.login-box{width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:32px;text-align:center;}
-.login-logo{display:flex;align-items:center;gap:8px;}
-.hex{width:12px;height:12px;background:#F6692A;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);}
-.hex-o{width:12px;height:12px;border:1.5px solid #F6692A;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);}
-.login-brand{font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;}
-.login-title{font-size:28px;font-weight:700;letter-spacing:-0.02em;}
-.login-sub{font-size:14px;color:#666;line-height:1.6;}
-.google-btn{width:100%;padding:15px;background:#fff;color:#111;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity 0.15s;}
-.google-btn:active{opacity:0.8;}
-
-/* MAIN APP */
+/* MAIN */
 #mainScreen{flex-direction:column;background:#000;}
 
-/* Header */
-.app-header{padding:56px 20px 12px;display:flex;align-items:flex-end;justify-content:space-between;}
-.app-title{font-size:34px;font-weight:700;letter-spacing:-0.02em;}
-.header-actions{display:flex;gap:12px;padding-bottom:4px;}
-.icon-btn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+/* Header - matches Voice Memo exactly */
+.app-header{
+padding:60px 16px 8px;
+display:flex;
+align-items:flex-end;
+justify-content:space-between;
+}
+.app-title{font-size:34px;font-weight:700;letter-spacing:-0.4px;line-height:1.1;}
+.header-right{display:flex;align-items:center;gap:8px;padding-bottom:6px;}
+.hdr-btn{
+background:none;border:none;color:#FF3B30;
+font-size:16px;font-weight:400;cursor:pointer;padding:4px 2px;
+}
+.hdr-icon-btn{
+width:30px;height:30px;border-radius:50%;
+background:rgba(255,255,255,0.12);border:none;
+color:#fff;cursor:pointer;
+display:flex;align-items:center;justify-content:center;
+}
 
-/* Session list */
-.session-list{flex:1;overflow-y:auto;padding:0 0 200px;}
+/* Search bar */
+.search-bar{
+margin:8px 16px 4px;
+background:#1C1C1E;
+border-radius:10px;
+padding:8px 12px;
+display:flex;align-items:center;gap:8px;
+color:#8E8E93;font-size:17px;
+}
+.search-bar input{
+background:none;border:none;outline:none;
+color:#fff;font-size:17px;flex:1;
+font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.search-bar input::placeholder{color:#8E8E93;}
+
+/* List */
+.session-list{flex:1;overflow-y:auto;padding-bottom:220px;}
 .session-list::-webkit-scrollbar{display:none;}
-.session-item{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer;transition:background 0.15s;}
+
+.list-section-header{
+padding:6px 16px 2px;
+font-size:13px;font-weight:600;
+color:#8E8E93;letter-spacing:0.02em;
+text-transform:uppercase;
+}
+
+.session-item{
+padding:12px 16px;
+border-bottom:1px solid rgba(255,255,255,0.1);
+cursor:pointer;
+display:flex;align-items:center;gap:12px;
+transition:background 0.1s;
+position:relative;
+}
 .session-item:active{background:rgba(255,255,255,0.05);}
-.session-date{font-size:16px;font-weight:500;margin-bottom:3px;}
-.session-meta{font-size:13px;color:#666;display:flex;align-items:center;gap:8px;}
-.session-duration{margin-left:auto;font-size:13px;color:#666;}
-.session-transcript{font-size:13px;color:#999;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4;}
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;color:#444;font-size:14px;gap:8px;}
+.session-item-body{flex:1;min-width:0;}
+.session-item-title{
+font-size:17px;font-weight:400;
+color:#fff;margin-bottom:2px;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.session-item-sub{
+font-size:13px;color:#8E8E93;
+display:flex;align-items:center;gap:6px;
+white-space:nowrap;overflow:hidden;
+}
+.session-item-transcript{
+font-size:13px;color:#8E8E93;
+margin-top:1px;
+display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;
+overflow:hidden;
+}
+.session-item-dur{font-size:13px;color:#8E8E93;flex-shrink:0;}
+.chevron{
+color:#3A3A3C;flex-shrink:0;
+}
 
-/* Recording panel - slides up from bottom */
-.rec-panel{position:fixed;bottom:0;left:0;right:0;background:#1C1C1E;border-radius:20px 20px 0 0;padding:12px 20px 40px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);}
+/* Empty */
+.empty-state{
+display:flex;flex-direction:column;align-items:center;
+justify-content:center;height:50vh;
+color:#3A3A3C;gap:12px;
+}
+.empty-state svg{opacity:0.4;}
+.empty-state-text{font-size:15px;color:#3A3A3C;}
+
+/* RECORDING PANEL - bottom sheet */
+.rec-panel{
+position:fixed;bottom:0;left:0;right:0;
+background:#1C1C1E;
+border-radius:13px 13px 0 0;
+padding:8px 0 0;
+transform:translateY(100%);
+transition:transform 0.4s cubic-bezier(0.32,0.72,0,1);
+z-index:100;
+}
 .rec-panel.open{transform:translateY(0);}
-.rec-handle{width:36px;height:4px;background:#3A3A3C;border-radius:2px;margin:0 auto 16px;}
-.rec-location{font-size:17px;font-weight:600;text-align:center;margin-bottom:4px;}
-.rec-timer{font-size:14px;color:#8E8E93;text-align:center;margin-bottom:20px;}
-.rec-wave{width:100%;height:48px;margin-bottom:24px;}
-.rec-controls{display:flex;align-items:center;justify-content:center;gap:32px;}
-.rec-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
-.rec-btn-label{font-size:11px;color:#8E8E93;}
 
-/* Big record button */
-.rec-btn{width:72px;height:72px;border-radius:50%;background:transparent;border:3px solid #fff;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;transition:all 0.2s;}
-.rec-btn-inner{width:52px;height:52px;border-radius:50%;background:#FF3B30;transition:all 0.25s;}
-.rec-btn.recording .rec-btn-inner{border-radius:10px;width:28px;height:28px;}
+.rec-handle{
+width:36px;height:5px;background:#48484A;
+border-radius:3px;margin:0 auto 12px;
+}
 
-/* Side buttons */
-.side-btn{width:48px;height:48px;border-radius:50%;background:#2C2C2E;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.rec-name{
+font-size:17px;font-weight:600;
+text-align:center;color:#fff;
+padding:0 20px;
+margin-bottom:2px;
+min-height:24px;
+}
 
-/* Transcribing indicator */
-.transcribe-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(255,149,0,0.15);border-radius:100px;font-size:11px;font-weight:600;color:#FF9500;letter-spacing:0.04em;}
-.transcribe-dot{width:6px;height:6px;border-radius:50%;background:#FF9500;animation:pulse 1s infinite;}
+.rec-time{
+font-size:13px;color:#8E8E93;
+text-align:center;margin-bottom:16px;
+min-height:18px;
+}
+
+/* Waveform - dotted at rest like Voice Memo */
+.rec-wave-wrap{
+padding:0 20px;margin-bottom:20px;
+height:52px;display:flex;align-items:center;
+}
+#recWave{width:100%;height:52px;display:block;}
+
+/* Controls row */
+.rec-controls{
+display:flex;align-items:center;
+justify-content:space-between;
+padding:0 40px 48px;
+}
+
+/* Side button - ellipsis / list */
+.side-btn{
+width:56px;height:56px;border-radius:50%;
+background:#2C2C2E;border:none;
+color:#fff;cursor:pointer;
+display:flex;align-items:center;justify-content:center;
+transition:opacity 0.2s;
+}
+.side-btn.hidden{opacity:0;pointer-events:none;}
+
+/* Main record button - Voice Memo style */
+.rec-btn-outer{
+width:80px;height:80px;border-radius:50%;
+background:#2C2C2E;
+display:flex;align-items:center;justify-content:center;
+cursor:pointer;border:none;
+transition:all 0.2s;
+flex-shrink:0;
+}
+.rec-btn-inner{
+width:56px;height:56px;border-radius:50%;
+background:#FF3B30;
+transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.rec-btn-outer.recording .rec-btn-inner{
+border-radius:8px;
+width:28px;height:28px;
+}
+
+/* Transcribing */
+.rec-transcribing{
+display:none;align-items:center;justify-content:center;
+gap:6px;padding:4px 0 8px;
+font-size:12px;color:#FF9500;font-weight:500;
+}
+.rec-transcribing.show{display:flex;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.t-dot{width:5px;height:5px;border-radius:50%;background:#FF9500;animation:blink 1.2s infinite;}
+
+/* DETAIL - slides in from right */
+.detail-screen{
+position:fixed;inset:0;background:#000;
+transform:translateX(100%);
+transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);
+z-index:200;
+display:flex;flex-direction:column;
+}
+.detail-screen.open{transform:translateX(0);}
+
+.detail-nav{
+padding:56px 16px 12px;
+display:flex;align-items:center;
+border-bottom:1px solid rgba(255,255,255,0.1);
+}
+.detail-back{
+background:none;border:none;
+color:#FF3B30;font-size:17px;
+cursor:pointer;display:flex;align-items:center;gap:4px;
+padding:0;margin-right:auto;
+}
+.detail-actions{display:flex;gap:16px;}
+.detail-action-btn{
+background:none;border:none;
+color:#FF3B30;cursor:pointer;padding:4px;
+}
+
+.detail-body{flex:1;overflow-y:auto;padding:20px 16px;}
+.detail-title-edit{
+font-size:22px;font-weight:700;color:#fff;
+background:none;border:none;outline:none;
+width:100%;margin-bottom:4px;
+font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.detail-meta-row{font-size:13px;color:#8E8E93;margin-bottom:20px;}
+.detail-transcript-label{
+font-size:11px;font-weight:600;letter-spacing:0.06em;
+text-transform:uppercase;color:#8E8E93;margin-bottom:8px;
+}
+.detail-transcript-text{
+font-size:16px;line-height:1.6;color:#fff;
+white-space:pre-wrap;
+}
+.detail-no-transcript{font-size:15px;color:#3A3A3C;font-style:italic;}
+
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
-.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
-@keyframes spin{to{transform:rotate(360deg);}}
-
-/* Session detail panel */
-.detail-panel{position:fixed;inset:0;background:#000;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;z-index:10;}
-.detail-panel.open{transform:translateX(0);}
-.detail-header{padding:56px 20px 16px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,0.08);}
-.back-btn{background:none;border:none;color:#F6692A;font-size:16px;cursor:pointer;display:flex;align-items:center;gap:4px;padding:0;}
-.detail-title{font-size:17px;font-weight:600;}
-.detail-body{padding:20px;}
-.detail-section{margin-bottom:24px;}
-.detail-label{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#666;margin-bottom:8px;}
-.detail-text{font-size:15px;line-height:1.6;color:#e0e0e0;}
-.detail-meta{font-size:13px;color:#666;margin-bottom:4px;}
 </style>
 
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- MAIN -->
 
-<div class="screen active" id="loginScreen">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="hex-o"></div>
-      <div class="hex"></div>
-      <div class="login-brand">Real Tracking</div>
-    </div>
-    <div>
-      <div class="login-title">Your body.<br>Your data.</div>
-    </div>
-    <div class="login-sub">Brain dump your training and habits. The app structures everything.</div>
-    <button class="google-btn" onclick="signInWithGoogle()">
-      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/></svg>
-      Continue with Google
-    </button>
-    <div style="font-size:11px;color:#444;">Your sessions are private to your account</div>
-  </div>
-</div>
-
-<!-- MAIN APP -->
-
-<div class="screen" id="mainScreen">
+<div class="screen active" id="mainScreen">
   <div class="app-header">
     <div class="app-title">Training Log</div>
-    <div class="header-actions">
-      <button class="icon-btn" onclick="showProfile()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#fff" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+    <div class="header-right">
+      <button class="hdr-icon-btn" onclick="toggleSearch()">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+          <circle cx="9" cy="9" r="6" stroke="#fff" stroke-width="1.8"/>
+          <path d="M13.5 13.5L17 17" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="hdr-icon-btn" id="selectBtn" onclick="alert('Select coming soon')">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="5" r="1.5" fill="#fff"/>
+          <circle cx="10" cy="10" r="1.5" fill="#fff"/>
+          <circle cx="10" cy="15" r="1.5" fill="#fff"/>
+        </svg>
       </button>
     </div>
   </div>
 
-  <!-- Session list -->
+  <div class="search-bar" id="searchBar" style="display:none;">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+      <circle cx="9" cy="9" r="6" stroke="#8E8E93" stroke-width="2"/>
+      <path d="M13.5 13.5L17 17" stroke="#8E8E93" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <input type="text" id="searchInput" placeholder="Search" oninput="filterSessions()">
+    <button onclick="toggleSearch()" style="background:none;border:none;color:#8E8E93;font-size:15px;cursor:pointer;">Cancel</button>
+  </div>
 
   <div class="session-list" id="sessionList">
     <div class="empty-state" id="emptyState">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#444" stroke-width="1.5"/><rect x="10" y="7" width="4" height="7" rx="2" stroke="#444" stroke-width="1.5"/><path d="M8 13a4 4 0 0 0 8 0" stroke="#444" stroke-width="1.5" stroke-linecap="round"/></svg>
-      <span>No recordings yet</span>
-      <span style="font-size:12px;color:#333;">Tap the button below to start</span>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="#3A3A3C" stroke-width="1.5"/>
+        <rect x="10" y="6" width="4" height="8" rx="2" stroke="#3A3A3C" stroke-width="1.5"/>
+        <path d="M8 12a4 4 0 0 0 8 0" stroke="#3A3A3C" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="12" y1="16" x2="12" y2="19" stroke="#3A3A3C" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div class="empty-state-text">No Recordings</div>
     </div>
   </div>
 
@@ -139,262 +288,322 @@
 
   <div class="rec-panel" id="recPanel">
     <div class="rec-handle"></div>
-    <div class="rec-location" id="recLocation">New Recording</div>
-    <div class="rec-timer" id="recTimer">00:00</div>
-    <canvas class="rec-wave" id="recWave" height="48"></canvas>
+    <div class="rec-name" id="recName">New Recording</div>
+    <div class="rec-time" id="recTime">&nbsp;</div>
+    <div class="rec-transcribing" id="recTranscribing">
+      <div class="t-dot"></div>
+      Transcribing...
+    </div>
+    <div class="rec-wave-wrap">
+      <canvas id="recWave" height="52"></canvas>
+    </div>
     <div class="rec-controls">
-      <div class="rec-btn-wrap">
-        <button class="side-btn" id="deleteBtn" onclick="cancelRecording()" style="opacity:0;pointer-events:none;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14H6L5 6" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M10 11v6M14 11v6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
-        </button>
-        <div class="rec-btn-label" id="deleteLbl" style="opacity:0;">Delete</div>
-      </div>
+      <!-- Left: delete/cancel -->
+      <button class="side-btn hidden" id="deleteBtn" onclick="cancelRecording()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
 
 ```
-  <div class="rec-btn-wrap">
-    <button class="rec-btn" id="recBtn" onclick="toggleRecording()">
-      <div class="rec-btn-inner" id="recBtnInner"></div>
-    </button>
-    <div class="rec-btn-label" id="recBtnLbl">Record</div>
-  </div>
+  <!-- Center: record button -->
+  <button class="rec-btn-outer" id="recBtn" onclick="toggleRecording()">
+    <div class="rec-btn-inner" id="recBtnInner"></div>
+  </button>
 
-  <div class="rec-btn-wrap">
-    <button class="side-btn" id="pauseBtn" onclick="pauseRecording()" style="opacity:0;pointer-events:none;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="6" y="5" width="4" height="14" rx="1" fill="#fff"/><rect x="14" y="5" width="4" height="14" rx="1" fill="#fff"/></svg>
-    </button>
-    <div class="rec-btn-label" id="pauseLbl" style="opacity:0;">Pause</div>
-  </div>
+  <!-- Right: pause -->
+  <button class="side-btn hidden" id="pauseBtn" onclick="pauseRecording()">
+    <svg id="pauseIcon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="6" y="5" width="4" height="14" rx="1.5" fill="#fff"/>
+      <rect x="14" y="5" width="4" height="14" rx="1.5" fill="#fff"/>
+    </svg>
+  </button>
 </div>
 ```
 
   </div>
 </div>
 
-<!-- SESSION DETAIL -->
+<!-- DETAIL SCREEN -->
 
-<div class="detail-panel" id="detailPanel">
-  <div class="detail-header">
-    <button class="back-btn" onclick="closeDetail()">
-      <svg width="10" height="16" viewBox="0 0 10 18" fill="none"><path d="M9 1L1 9l8 8" stroke="#F6692A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Back
+<div class="detail-screen" id="detailScreen">
+  <div class="detail-nav">
+    <button class="detail-back" onclick="closeDetail()">
+      <svg width="10" height="17" viewBox="0 0 10 18" fill="none">
+        <path d="M9 1L1 9l8 8" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      All Recordings
     </button>
-    <div class="detail-title" id="detailTitle"></div>
+    <div class="detail-actions">
+      <button class="detail-action-btn" onclick="shareRecording()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" stroke="#FF3B30" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="detail-action-btn" onclick="deleteCurrentSession()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="#FF3B30" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
   </div>
   <div class="detail-body">
-    <div class="detail-section">
-      <div class="detail-label">Date & Duration</div>
-      <div class="detail-meta" id="detailMeta"></div>
-    </div>
-    <div class="detail-section" id="detailTranscriptSection">
-      <div class="detail-label">Transcript</div>
-      <div class="detail-text" id="detailTranscript"></div>
-    </div>
+    <input class="detail-title-edit" id="detailTitleEdit" type="text" value="">
+    <div class="detail-meta-row" id="detailMeta"></div>
+    <div class="detail-transcript-label">Transcript</div>
+    <div id="detailTranscriptText"></div>
   </div>
 </div>
 
 <script>
-  // CONFIG
-  const SB_URL = 'https://zpaowjtjyvfjkbpjogqi.supabase.co';
-  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwYW93anRqeXZmamticGpvZ3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Njc1MDksImV4cCI6MjA5MTI0MzUwOX0.15xalsWwm1IFqDJJU2MntKvoOiWRr7YBLkwKDpm5_sI';
-  const ANTHROPIC_KEY = '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';
-
-  const sb = supabase.createClient(SB_URL, SB_KEY);
-  let currentUser = null;
   let sessions = [];
-
-  // Recording state
+  let currentDetailIndex = -1;
+  let isRecording = false;
+  let isPaused = false;
   let mediaRec = null;
   let audioChunks = [];
   let recStream = null;
-  let recTimer = null;
+  let recTimerInterval = null;
   let recSecs = 0;
-  let isRecording = false;
-  let isPaused = false;
   let audioCtx = null;
   let analyser = null;
   let waveAF = null;
-
-  // Speech recognition
   let recognition = null;
   let transcript = '';
+  let searchVisible = false;
 
-  const $ = id => document.getElementById(id);
+  // Init
+  window.addEventListener('load', () => {
+    loadSessions();
+    setTimeout(() => {
+      document.getElementById('recPanel').classList.add('open');
+    }, 200);
+    resizeWave();
+    drawWave();
+    window.addEventListener('resize', resizeWave);
+  });
 
-  // AUTH - skip login, local storage only
-  async function init() {
-    show('mainScreen');
-    openRecPanel();
-    await loadSessions();
+  function resizeWave() {
+    const wc = document.getElementById('recWave');
+    wc.width = wc.offsetWidth;
   }
 
-  async function signInWithGoogle() {}
-
-  function show(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    $(id).classList.add('active');
+  // SESSIONS
+  function loadSessions() {
+    const stored = localStorage.getItem('rt_sessions_v2');
+    sessions = stored ? JSON.parse(stored) : [];
+    renderList();
   }
 
-  // RECORDING PANEL
-  function openRecPanel() {
-    setTimeout(() => $('recPanel').classList.add('open'), 100);
+  function saveSessions() {
+    localStorage.setItem('rt_sessions_v2', JSON.stringify(sessions));
+  }
+
+  function renderList(filter) {
+    const list = document.getElementById('sessionList');
+    const empty = document.getElementById('emptyState');
+    list.querySelectorAll('.session-item,.list-section-header').forEach(e => e.remove());
+
+    let items = sessions;
+    if (filter) {
+      const q = filter.toLowerCase();
+      items = sessions.filter(s =>
+        (s.name||'').toLowerCase().includes(q) ||
+        (s.transcript||'').toLowerCase().includes(q)
+      );
+    }
+
+    if (items.length === 0) {
+      empty.style.display = 'flex';
+      return;
+    }
+    empty.style.display = 'none';
+
+    // Group by date
+    let lastDate = null;
+    items.forEach((s, i) => {
+      const dateLabel = formatDateGroup(s.date);
+      if (dateLabel !== lastDate) {
+        const hdr = document.createElement('div');
+        hdr.className = 'list-section-header';
+        hdr.textContent = dateLabel;
+        list.appendChild(hdr);
+        lastDate = dateLabel;
+      }
+
+      const idx = sessions.indexOf(s);
+      const item = document.createElement('div');
+      item.className = 'session-item';
+      item.onclick = () => openDetail(idx);
+
+      const hasTranscript = s.transcript && s.transcript.trim().length > 0;
+
+      item.innerHTML = `
+        <div class="session-item-body">
+          <div class="session-item-title">${s.name || 'New Recording'}</div>
+          <div class="session-item-sub">
+            <span>${s.time || ''}</span>
+            ${hasTranscript ? '<span style="color:#3A3A3C;">|</span><span style="overflow:hidden;text-overflow:ellipsis;">' + escHtml(s.transcript.slice(0, 60)) + '</span>' : ''}
+          </div>
+        </div>
+        <div class="session-item-dur">${s.duration || ''}</div>
+        <svg class="chevron" width="8" height="13" viewBox="0 0 8 14" fill="none">
+          <path d="M1 1l6 6-6 6" stroke="#3A3A3C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+      list.appendChild(item);
+    });
   }
 
   // RECORDING
   async function toggleRecording() {
     if (!isRecording) {
-      await startRecording();
+      await startRec();
     } else {
-      await stopRecording();
+      await stopRec();
     }
   }
 
-  async function startRecording() {
+  async function startRec() {
     try {
-      recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (e) {
-      alert('Microphone access needed. Please allow microphone and try again.');
+      recStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch(e) {
+      alert('Microphone access is required. Please allow microphone in your browser settings and try again.');
       return;
     }
 
-    // Audio visualizer
+    // Analyser
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.resume();
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
+    analyser.fftSize = 512;
     audioCtx.createMediaStreamSource(recStream).connect(analyser);
-    drawWave();
 
     // MediaRecorder
     audioChunks = [];
     transcript = '';
-    mediaRec = new MediaRecorder(recStream);
-    mediaRec.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-    mediaRec.start(100);
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+    mediaRec = new MediaRecorder(recStream, { mimeType });
+    mediaRec.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+    mediaRec.start(200);
 
     // Speech recognition
-    startSpeechRecognition();
+    startRecognition();
 
     // Timer
     recSecs = 0;
     updateTimer();
-    recTimer = setInterval(updateTimer, 1000);
+    recTimerInterval = setInterval(updateTimer, 1000);
 
     // UI
     isRecording = true;
-    $('recBtn').classList.add('recording');
-    $('recBtnLbl').textContent = 'Stop';
-    $('deleteBtn').style.opacity = '1';
-    $('deleteBtn').style.pointerEvents = 'auto';
-    $('deleteLbl').style.opacity = '1';
-    $('pauseBtn').style.opacity = '1';
-    $('pauseBtn').style.pointerEvents = 'auto';
-    $('pauseLbl').style.opacity = '1';
-    $('recLocation').textContent = formatDateTime(new Date());
-
+    isPaused = false;
+    document.getElementById('recBtn').classList.add('recording');
+    document.getElementById('deleteBtn').classList.remove('hidden');
+    document.getElementById('pauseBtn').classList.remove('hidden');
+    document.getElementById('recName').textContent = formatRecName(new Date());
+    document.getElementById('recTranscribing').classList.remove('show');
   }
 
-  async function stopRecording() {
-    if (!mediaRec) return;
-
-    // Stop everything
-    clearInterval(recTimer);
+  async function stopRec() {
+    clearInterval(recTimerInterval);
     isRecording = false;
     isPaused = false;
 
-    if (recognition) try { recognition.stop(); } catch(e) {}
+    if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
     cancelAnimationFrame(waveAF);
+    waveAF = null;
 
-    mediaRec.stop();
-    recStream.getTracks().forEach(t => t.stop());
-    if (audioCtx) audioCtx.close();
+    if (mediaRec && mediaRec.state !== 'inactive') mediaRec.stop();
+    if (recStream) recStream.getTracks().forEach(t => t.stop());
+    if (audioCtx) { try { audioCtx.close(); } catch(e) {} audioCtx = null; analyser = null; }
 
-    // Clear wave
-    const wc = $('recWave');
-    const wctx = wc.getContext('2d');
-    wctx.clearRect(0, 0, wc.width, wc.height);
+    // UI
+    document.getElementById('recBtn').classList.remove('recording');
+    document.getElementById('deleteBtn').classList.add('hidden');
+    document.getElementById('pauseBtn').classList.add('hidden');
+    document.getElementById('recTranscribing').classList.add('show');
+    document.getElementById('recTime').innerHTML = '&nbsp;';
 
-    // UI - show transcribing state
-    $('recBtn').classList.remove('recording');
-    $('recBtnLbl').textContent = 'Record';
-    $('deleteBtn').style.opacity = '0';
-    $('deleteBtn').style.pointerEvents = 'none';
-    $('deleteLbl').style.opacity = '0';
-    $('pauseBtn').style.opacity = '0';
-    $('pauseBtn').style.pointerEvents = 'none';
-    $('pauseLbl').style.opacity = '0';
-    $('recLocation').innerHTML = '<span class="transcribe-badge"><span class="transcribe-dot"></span>Transcribing</span>';
+    // Wait for mediaRec to finish
+    await new Promise(r => { if (mediaRec) mediaRec.onstop = r; else r(); });
 
-    // Wait for mediaRec to finish then save
-    await new Promise(resolve => { mediaRec.onstop = resolve; });
-    await saveSession();
+    // Save
+    const now = new Date();
+    const entry = {
+      id: Date.now(),
+      name: formatRecName(now),
+      date: now.toISOString().split('T')[0],
+      time: now.toTimeString().slice(0,5),
+      duration: formatDur(recSecs),
+      transcript: transcript.trim()
+    };
+    sessions.unshift(entry);
+    saveSessions();
+    renderList();
 
-    $('recLocation').textContent = 'New Recording';
-    $('recTimer').textContent = '00:00';
+    // Reset panel
+    document.getElementById('recTranscribing').classList.remove('show');
+    document.getElementById('recName').textContent = 'New Recording';
+    document.getElementById('recTime').innerHTML = '&nbsp;';
     recSecs = 0;
+
+    // Restart wave animation
+    drawWave();
   }
 
   function pauseRecording() {
     if (!isRecording) return;
+    const icon = document.getElementById('pauseIcon');
     if (!isPaused) {
-      mediaRec.pause();
-      if (recognition) recognition.stop();
-      clearInterval(recTimer);
+      if (mediaRec && mediaRec.state === 'recording') mediaRec.pause();
+      if (recognition) { try { recognition.stop(); } catch(e) {} }
+      clearInterval(recTimerInterval);
       isPaused = true;
-      $('pauseBtn').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polygon points="5,3 19,12 5,21" fill="#fff"/></svg>';
-      $('pauseLbl').textContent = 'Resume';
+      icon.innerHTML = '<polygon points="5,3 19,12 5,21" fill="#fff"/>';
     } else {
-      mediaRec.resume();
-      startSpeechRecognition();
-      recTimer = setInterval(updateTimer, 1000);
+      if (mediaRec && mediaRec.state === 'paused') mediaRec.resume();
+      startRecognition();
+      recTimerInterval = setInterval(updateTimer, 1000);
       isPaused = false;
-      $('pauseBtn').innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="6" y="5" width="4" height="14" rx="1" fill="#fff"/><rect x="14" y="5" width="4" height="14" rx="1" fill="#fff"/></svg>';
-      $('pauseLbl').textContent = 'Pause';
+      icon.innerHTML = '<rect x="6" y="5" width="4" height="14" rx="1.5" fill="#fff"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="#fff"/>';
     }
   }
 
   function cancelRecording() {
     if (!isRecording && !isPaused) return;
-    clearInterval(recTimer);
-    if (recognition) try { recognition.stop(); } catch(e) {}
-    cancelAnimationFrame(waveAF);
+    clearInterval(recTimerInterval);
+    isRecording = false; isPaused = false;
+    if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
+    cancelAnimationFrame(waveAF); waveAF = null;
     if (mediaRec && mediaRec.state !== 'inactive') mediaRec.stop();
     if (recStream) recStream.getTracks().forEach(t => t.stop());
-    if (audioCtx) try { audioCtx.close(); } catch(e) {}
+    if (audioCtx) { try { audioCtx.close(); } catch(e) {} audioCtx = null; analyser = null; }
 
-    isRecording = false;
-    isPaused = false;
-    $('recBtn').classList.remove('recording');
-    $('recBtnLbl').textContent = 'Record';
-    $('deleteBtn').style.opacity = '0';
-    $('deleteBtn').style.pointerEvents = 'none';
-    $('deleteLbl').style.opacity = '0';
-    $('pauseBtn').style.opacity = '0';
-    $('pauseBtn').style.pointerEvents = 'none';
-    $('pauseLbl').style.opacity = '0';
-    $('recLocation').textContent = 'New Recording';
-    $('recTimer').textContent = '00:00';
+    document.getElementById('recBtn').classList.remove('recording');
+    document.getElementById('deleteBtn').classList.add('hidden');
+    document.getElementById('pauseBtn').classList.add('hidden');
+    document.getElementById('recName').textContent = 'New Recording';
+    document.getElementById('recTime').innerHTML = '&nbsp;';
+    document.getElementById('pauseIcon').innerHTML = '<rect x="6" y="5" width="4" height="14" rx="1.5" fill="#fff"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="#fff"/>';
     recSecs = 0;
-
-    const wc = $('recWave');
-    const wctx = wc.getContext('2d');
-    wctx.clearRect(0, 0, wc.width, wc.height);
+    drawWave();
   }
 
   // SPEECH RECOGNITION
-  function startSpeechRecognition() {
+  function startRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
     recognition = new SR();
     recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.interimResults = false;
     recognition.lang = 'en-US';
-    let finalTranscript = transcript;
+    let base = transcript;
     recognition.onresult = e => {
-      let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript + ' ';
-        else interim += e.results[i][0].transcript;
+        if (e.results[i].isFinal) base += e.results[i][0].transcript + ' ';
       }
-      transcript = finalTranscript;
+      transcript = base;
     };
     recognition.onerror = () => {};
     recognition.onend = () => {
@@ -407,37 +616,47 @@
 
   // WAVEFORM
   function drawWave() {
-    const wc = $('recWave');
+    const wc = document.getElementById('recWave');
     if (!wc) return;
-    wc.width = wc.offsetWidth;
     const wctx = wc.getContext('2d');
-    const W = wc.width, H = 48;
-
+    const W = wc.width || wc.offsetWidth;
+    const H = 52;
     wctx.clearRect(0, 0, W, H);
 
     if (analyser && isRecording && !isPaused) {
+      // Active recording - red bars
       const buf = new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteFrequencyData(buf);
-      const bars = 40;
-      const bw = Math.floor(W / bars) - 2;
+      const bars = 50;
+      const bw = 3;
+      const gap = (W - bars * bw) / (bars - 1);
       for (let i = 0; i < bars; i++) {
-        const idx = Math.floor(i / bars * buf.length * 0.7);
-        const h = Math.max(3, (buf[idx] / 255) * H * 0.9);
-        const x = i * (bw + 2) + 1;
+        const idx = Math.floor(i / bars * buf.length * 0.6);
+        const h = Math.max(3, (buf[idx] / 255) * H * 0.92);
+        const x = i * (bw + gap);
         const y = (H - h) / 2;
         wctx.fillStyle = '#FF3B30';
         wctx.beginPath();
-        wctx.roundRect(x, y, bw, h, 2);
+        if (wctx.roundRect) wctx.roundRect(x, y, bw, h, 1.5);
+        else wctx.rect(x, y, bw, h);
         wctx.fill();
       }
     } else {
-      // Flat line when not recording
-      wctx.strokeStyle = 'rgba(255,255,255,0.15)';
-      wctx.lineWidth = 1;
-      wctx.beginPath();
-      wctx.moveTo(0, H / 2);
-      wctx.lineTo(W, H / 2);
-      wctx.stroke();
+      // Idle - dotted line like Voice Memo
+      const dotR = 1.5;
+      const spacing = 8;
+      const cx = W / 2;
+      const cy = H / 2;
+      let x = 0;
+      while (x < W) {
+        const dist = Math.abs(x - cx);
+        const fade = Math.max(0.08, 1 - dist / (W * 0.55));
+        wctx.beginPath();
+        wctx.arc(x, cy, dotR, 0, Math.PI * 2);
+        wctx.fillStyle = `rgba(255,59,48,${fade * 0.6})`;
+        wctx.fill();
+        x += spacing;
+      }
     }
 
     waveAF = requestAnimationFrame(drawWave);
@@ -446,123 +665,116 @@
   // TIMER
   function updateTimer() {
     recSecs++;
-    const m = String(Math.floor(recSecs / 60)).padStart(2, '0');
-    const s = String(recSecs % 60).padStart(2, '0');
-    $('recTimer').textContent = `${m}:${s}`;
+    const h = Math.floor(recSecs / 3600);
+    const m = Math.floor((recSecs % 3600) / 60);
+    const s = recSecs % 60;
+    let str = '';
+    if (h > 0) str = `${h}:${pad(m)}:${pad(s)}`;
+    else str = `${pad(m)}:${pad(s)}`;
+    document.getElementById('recTime').textContent = str;
   }
 
-  // SAVE SESSION
-  async function saveSession() {
-    const now = new Date();
-    const date = now.toISOString().split('T')[0];
-    const time = now.toTimeString().split(' ')[0].slice(0, 5);
-    const duration = formatDuration(recSecs);
+  function pad(n) { return String(n).padStart(2,'0'); }
 
-    const entry = {
-      id: Date.now(),
-      date,
-      time,
-      duration,
-      transcript: transcript.trim() || ''
-    };
-
-    sessions.unshift(entry);
-    localStorage.setItem('rt_sessions', JSON.stringify(sessions));
-    renderSessions();
-  }
-
-  // LOAD SESSIONS from localStorage
-  async function loadSessions() {
-    const stored = localStorage.getItem('rt_sessions');
-    sessions = stored ? JSON.parse(stored) : [];
-    renderSessions();
-  }
-
-  function renderSessions() {
-    const list = $('sessionList');
-    const empty = $('emptyState');
-
-    if (sessions.length === 0) {
-      empty.style.display = 'flex';
-      // Remove existing items
-      list.querySelectorAll('.session-item').forEach(i => i.remove());
-      return;
+  // DETAIL
+  function openDetail(idx) {
+    currentDetailIndex = idx;
+    const s = sessions[idx];
+    document.getElementById('detailTitleEdit').value = s.name || 'New Recording';
+    document.getElementById('detailMeta').textContent = formatDetailMeta(s);
+    const tt = document.getElementById('detailTranscriptText');
+    if (s.transcript && s.transcript.trim()) {
+      tt.className = 'detail-transcript-text';
+      tt.textContent = s.transcript;
+    } else {
+      tt.className = 'detail-no-transcript';
+      tt.textContent = 'No transcript available';
     }
-
-    empty.style.display = 'none';
-    list.querySelectorAll('.session-item').forEach(i => i.remove());
-
-    sessions.forEach((s, i) => {
-      const item = document.createElement('div');
-      item.className = 'session-item';
-      item.onclick = () => openDetail(i);
-
-      const dateLabel = formatDateLabel(s.date, s.time);
-      const hasTranscript = s.transcript && s.transcript.trim().length > 0;
-
-      item.innerHTML = `
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
-          <div style="flex:1;">
-            <div class="session-date">${dateLabel}</div>
-            <div class="session-meta">
-              <span>${s.time || ''}</span>
-              ${s.activity_type ? `<span style="color:#F6692A;">${s.activity_type}</span>` : ''}
-            </div>
-            ${hasTranscript ? `<div class="session-transcript">${s.transcript}</div>` : ''}
-          </div>
-          <div class="session-duration">${s.duration || ''}</div>
-        </div>
-      `;
-      list.appendChild(item);
-    });
-  }
-
-  // SESSION DETAIL
-  function openDetail(index) {
-    const s = sessions[index];
-    $('detailTitle').textContent = formatDateLabel(s.date, s.time);
-    $('detailMeta').textContent = `${s.date} at ${s.time || ''} · ${s.duration || ''}`;
-    $('detailTranscript').textContent = s.transcript || 'No transcript';
-    $('detailPanel').classList.add('open');
+    document.getElementById('detailScreen').classList.add('open');
   }
 
   function closeDetail() {
-    $('detailPanel').classList.remove('open');
+    // Save any name edit
+    if (currentDetailIndex >= 0) {
+      const newName = document.getElementById('detailTitleEdit').value.trim();
+      if (newName) {
+        sessions[currentDetailIndex].name = newName;
+        saveSessions();
+        renderList();
+      }
+    }
+    document.getElementById('detailScreen').classList.remove('open');
+    currentDetailIndex = -1;
   }
 
-  // PROFILE
-  function showProfile() {
-    alert('Profile coming soon.');
+  function deleteCurrentSession() {
+    if (currentDetailIndex < 0) return;
+    if (!confirm('Delete this recording?')) return;
+    sessions.splice(currentDetailIndex, 1);
+    saveSessions();
+    renderList();
+    document.getElementById('detailScreen').classList.remove('open');
+    currentDetailIndex = -1;
+  }
+
+  function shareRecording() {
+    if (currentDetailIndex < 0) return;
+    const s = sessions[currentDetailIndex];
+    const text = `${s.name}\n${formatDetailMeta(s)}\n\n${s.transcript || '(no transcript)'}`;
+    if (navigator.share) {
+      navigator.share({ title: s.name, text });
+    } else {
+      navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard'));
+    }
+  }
+
+  // SEARCH
+  function toggleSearch() {
+    searchVisible = !searchVisible;
+    const bar = document.getElementById('searchBar');
+    const input = document.getElementById('searchInput');
+    bar.style.display = searchVisible ? 'flex' : 'none';
+    if (searchVisible) { input.focus(); }
+    else { input.value = ''; renderList(); }
+  }
+
+  function filterSessions() {
+    renderList(document.getElementById('searchInput').value);
   }
 
   // UTILS
-  function formatDuration(secs) {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    if (m === 0) return `0:${String(s).padStart(2,'0')}`;
-    return `${m}:${String(s).padStart(2,'0')}`;
+  function formatRecName(date) {
+    return date.toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' }) +
+      ' at ' + date.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
   }
 
-  function formatDateTime(date) {
-    return date.toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
-  }
-
-  function formatDateLabel(dateStr, timeStr) {
-    if (!dateStr) return 'Recording';
-    const date = new Date(dateStr + 'T' + (timeStr || '00:00') + ':00');
+  function formatDateGroup(dateStr) {
+    if (!dateStr) return 'Recordings';
+    const d = new Date(dateStr + 'T12:00:00');
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const yesterday = new Date(now - 86400000).toISOString().split('T')[0];
     if (dateStr === today) return 'Today';
     if (dateStr === yesterday) return 'Yesterday';
-    return date.toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
+    const diffDays = Math.floor((now - d) / 86400000);
+    if (diffDays < 7) return d.toLocaleDateString('en-US', { weekday:'long' });
+    return d.toLocaleDateString('en-US', { month:'long', year:'numeric' });
   }
 
-  // Start wave animation on load
-  window.addEventListener('load', () => {
-    drawWave();
-    init();
-  });
+  function formatDetailMeta(s) {
+    const d = s.date ? new Date(s.date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }) : '';
+    return [d, s.time, s.duration].filter(Boolean).join(' · ');
+  }
+
+  function formatDur(secs) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${pad(s)}`;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
 </script>
 
 </body>
