@@ -352,7 +352,19 @@ border-bottom:1px solid rgba(255,255,255,0.1);
   let globalAnalyser = null;
 
   async function initMic() {
-    if (globalStream && globalStream.active) return true;
+    // Check if existing stream is still healthy
+    if (globalStream && globalStream.active && globalAudioCtx && globalAudioCtx.state !== 'closed') {
+      // Resume if suspended
+      if (globalAudioCtx.state === 'suspended') {
+        try { await globalAudioCtx.resume(); } catch(e) {}
+      }
+      analyser = globalAnalyser;
+      return true;
+    }
+    // Stream is dead or doesn't exist - get a fresh one
+    globalStream = null;
+    globalAudioCtx = null;
+    globalAnalyser = null;
     try {
       globalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
