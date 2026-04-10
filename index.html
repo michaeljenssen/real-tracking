@@ -324,58 +324,50 @@ border-bottom:1px solid rgba(255,255,255,0.1);
     });
   }
 
-  // Core cleanup - always call this and await it before starting new recording
-  async function cleanupAudio() {
-    cancelAnimationFrame(waveAF); waveAF = null;
-    if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; }
-    clearInterval(recInterval);
-    if (mediaRec && mediaRec.state !== 'inactive') {
-      try { mediaRec.stop(); } catch(e) {}
+  // PERSISTENT MIC STREAM - request once, keep alive for all recordings
+  let globalStream = null;
+  let globalAudioCtx = null;
+  let globalAnalyser = null;
+
+  async function initMic() {
+    if (globalStream && globalStream.active) return true;
+    try {
+      globalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      await globalAudioCtx.resume();
+      globalAnalyser = globalAudioCtx.createAnalyser();
+      globalAnalyser.fftSize = 256;
+      globalAudioCtx.createMediaStreamSource(globalStream).connect(globalAnalyser);
+      analyser = globalAnalyser;
+      return true;
+    } catch(e) {
+      alert('Microphone access required. Please allow microphone and try again.');
+      return false;
     }
-    mediaRec = null;
-    if (recStream) {
-      recStream.getTracks().forEach(t => { try { t.stop(); } catch(e) {} });
-      recStream = null;
-    }
-    if (audioCtx) {
-      try { await audioCtx.close(); } catch(e) {}
-      audioCtx = null;
-      analyser = null;
-    }
-    // Critical: give iOS time to fully release the microphone
-    await new Promise(r => setTimeout(r, 300));
   }
 
-  // Recording
   async function toggleRec() {
     if (!isRec) await startRec();
     else await stopRec();
   }
 
   async function startRec() {
-    // Always clean up first before requesting mic again
-    await cleanupAudio();
+    const ok = await initMic();
+    if (!ok) return;
 
-    try {
-      recStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    } catch(e) {
-      alert('Microphone access required. Please allow microphone and try again.');
-      return;
-    }
-
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    await audioCtx.resume();
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    audioCtx.createMediaStreamSource(recStream).connect(analyser);
-
+    analyser = globalAnalyser;
     audioChunks = [];
     liveTranscript = '';
     waveData = [];
 
-    const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' :
-                 MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
-    mediaRec = mime ? new MediaRecorder(recStream, { mimeType: mime }) : new MediaRecorder(recStream);
+    // Create new MediaRecorder on same persistent stream
+    try {
+      const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' :
+                   MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+      mediaRec = mime ? new MediaRecorder(globalStream, { mimeType: mime }) : new MediaRecorder(globalStream);
+    } catch(e) {
+      mediaRec = new MediaRecorder(globalStream);
+    }
     mediaRec.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
     mediaRec.start(100);
 
@@ -384,7 +376,6 @@ border-bottom:1px solid rgba(255,255,255,0.1);
     recSecs = 0;
     updateTimer();
     recInterval = setInterval(updateTimer, 1000);
-
     isRec = true;
     isPaused = false;
 
@@ -393,27 +384,29 @@ border-bottom:1px solid rgba(255,255,255,0.1);
     document.getElementById('pauseBtn').classList.remove('invisible');
     document.getElementById('recTitle').textContent = formatRecName(new Date());
     document.getElementById('recTranscribing').classList.remove('show');
-    drawWave();
+    if (!waveAF) drawWave();
   }
 
   async function stopRec() {
     const savedSecs = recSecs;
     isRec = false;
     isPaused = false;
+    clearInterval(recInterval);
 
-    // UI first
+    if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; }
+
     document.getElementById('recMainBtn').classList.remove('recording');
     document.getElementById('deleteBtn').classList.add('invisible');
     document.getElementById('pauseBtn').classList.add('invisible');
     document.getElementById('recTranscribing').classList.add('show');
     document.getElementById('recTimer').innerHTML = '&nbsp;';
 
-    // Wait for final mediaRec data
+    // Stop just the MediaRecorder - stream stays alive
     const stopPromise = new Promise(r => { if (mediaRec) mediaRec.onstop = r; else r(); });
     if (mediaRec && mediaRec.state !== 'inactive') { try { mediaRec.stop(); } catch(e) {} }
     await stopPromise;
+    mediaRec = null;
 
-    // Save session before cleanup
     const now = new Date();
     const entry = {
       id: Date.now(),
@@ -427,17 +420,12 @@ border-bottom:1px solid rgba(255,255,255,0.1);
     saveSessions();
     renderList();
 
-    // Now fully clean up audio resources
-    await cleanupAudio();
-
-    // Reset UI
     document.getElementById('recTranscribing').classList.remove('show');
     document.getElementById('recTitle').textContent = 'New Recording';
     document.getElementById('recTimer').innerHTML = '&nbsp;';
     document.getElementById('pauseIcon').innerHTML = '<rect x="6" y="5" width="4" height="14" rx="1.5" fill="#fff"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="#fff"/>';
     waveData = [];
     recSecs = 0;
-    drawWave();
   }
 
   function togglePause() {
@@ -460,7 +448,10 @@ border-bottom:1px solid rgba(255,255,255,0.1);
 
   async function cancelRec() {
     isRec = false; isPaused = false;
-    await cleanupAudio();
+    clearInterval(recInterval);
+    if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; }
+    if (mediaRec && mediaRec.state !== 'inactive') { try { mediaRec.stop(); } catch(e) {} }
+    mediaRec = null;
     document.getElementById('recMainBtn').classList.remove('recording');
     document.getElementById('deleteBtn').classList.add('invisible');
     document.getElementById('pauseBtn').classList.add('invisible');
@@ -469,7 +460,6 @@ border-bottom:1px solid rgba(255,255,255,0.1);
     document.getElementById('pauseIcon').innerHTML = '<rect x="6" y="5" width="4" height="14" rx="1.5" fill="#fff"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="#fff"/>';
     waveData = [];
     recSecs = 0;
-    drawWave();
   }
 
   // Speech recognition
