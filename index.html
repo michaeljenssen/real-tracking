@@ -396,25 +396,9 @@
     <div class="type-title">Coach</div>
   </div>
 
-  <div style="flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding:40px 24px;">
-
-    <!-- Animated orb -->
-    <div style="position:relative;width:220px;height:220px;display:flex;align-items:center;justify-content:center;">
-      <canvas id="talkOrbCanvas" width="220" height="220" style="position:absolute;top:0;left:0;border-radius:50%;"></canvas>
-      <div id="talkStatus" style="position:relative;font-size:12px;color:rgba(255,255,255,0.8);font-weight:700;letter-spacing:0.12em;text-transform:uppercase;text-align:center;z-index:2;text-shadow:0 1px 4px rgba(0,0,0,0.5);">Tap to start</div>
-    </div>
-
-    <!-- Big tap button -->
-    <button id="talkMicBtn" onclick="toggleTalkSession()" style="width:72px;height:72px;border-radius:50%;background:var(--or);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s;box-shadow:0 4px 20px rgba(246,105,42,0.4);">
-      <svg id="talkBtnIcon" width="28" height="28" viewBox="0 0 24 24" fill="none">
-        <rect x="9" y="2" width="6" height="11" rx="3" fill="white"/>
-        <path d="M5 10a7 7 0 0 0 14 0" stroke="white" stroke-width="2" stroke-linecap="round"/>
-        <line x1="12" y1="17" x2="12" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/>
-        <line x1="9" y1="21" x2="15" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    </button>
-
-    <div style="font-size:12px;color:var(--g);text-align:center;">Tap to start · Tap to stop</div>
+  <div onclick="toggleTalkSession()">
+    <canvas id="talkOrbCanvas" width="280" height="280"></canvas>
+    <canvas id="talkWaveCanvas" width="200" height="32"></canvas>
   </div>
 </div>
 
@@ -750,11 +734,13 @@
       if(talkRec)try{talkRec.stop();}catch(e){}
       _talkAudio.pause();
       window.speechSynthesis.cancel();
+      stopTalkAudio();
       setTalkStatus('Stopped','idle');
       setTalkBtn('START',false);
     } else {
       // Start the loop
       talkRunning=true;
+      await startTalkAudio();
       setTalkBtn('STOP',true);
       // First turn - greet user
       setTalkStatus('Connecting...','thinking');
@@ -926,6 +912,49 @@
   function stopOrb(){
     if(orbAF)cancelAnimationFrame(orbAF);
     orbAF=null;
+  }
+
+  // TALK AUDIO - mic analyser for wave visualisation
+  let talkMicStream=null, talkAudioCtx=null, talkAnalyser=null;
+
+  async function startTalkAudio(){
+    try{
+      talkMicStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      talkAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+      await talkAudioCtx.resume();
+      talkAnalyser=talkAudioCtx.createAnalyser();
+      talkAnalyser.fftSize=256;
+      talkAudioCtx.createMediaStreamSource(talkMicStream).connect(talkAnalyser);
+    }catch(e){console.warn('Talk audio failed:',e);}
+  }
+
+  function stopTalkAudio(){
+    if(talkMicStream)talkMicStream.getTracks().forEach(t=>t.stop());
+    if(talkAudioCtx)try{talkAudioCtx.close();}catch(e){}
+    talkMicStream=null;talkAudioCtx=null;talkAnalyser=null;
+  }
+
+  function drawTalkWave(){
+    const wc=document.getElementById('talkWaveCanvas');
+    if(!wc||!talkAnalyser)return;
+    const wctx=wc.getContext('2d');
+    const W=200,H=32;
+    wctx.clearRect(0,0,W,H);
+    const buf=new Uint8Array(talkAnalyser.frequencyBinCount);
+    talkAnalyser.getByteFrequencyData(buf);
+    const col=orbMode==='listening'?'246,105,42':orbMode==='speaking'?'90,160,250':orbMode==='thinking'?'52,199,89':'107,107,107';
+    const bars=20;
+    const bw=6,gap=4;
+    const total=(bars*bw)+(bars-1)*gap;
+    const startX=(W-total)/2;
+    for(let i=0;i<bars;i++){
+      const idx=Math.floor(i/bars*buf.length*0.5);
+      const h=Math.max(3,(buf[idx]/255)*H*0.9);
+      const x=startX+i*(bw+gap);
+      const y=(H-h)/2;
+      wctx.fillStyle=`rgba(${col},0.8)`;
+      wctx.fillRect(x,y,bw,h);
+    }
   }
 
   // BIO CANVAS - three biological visual styles
@@ -1241,17 +1270,7 @@
   }
 
   function setTalkBtn(label, isActive){
-    const btn=document.getElementById('talkMicBtn');
-    const icon=document.getElementById('talkBtnIcon');
-    if(btn){
-      btn.style.background=isActive?'#cc3300':'var(--or)';
-      btn.style.boxShadow=isActive?'0 4px 20px rgba(204,51,0,0.5)':'0 4px 20px rgba(246,105,42,0.4)';
-    }
-    if(icon){
-      icon.innerHTML=isActive
-        ?'<rect x="6" y="6" width="12" height="12" rx="2" fill="white"/>'
-        :'<rect x="9" y="2" width="6" height="11" rx="3" fill="white"/><path d="M5 10a7 7 0 0 0 14 0" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="21" x2="15" y2="21" stroke="white" stroke-width="2" stroke-linecap="round"/>';
-    }
+    // button removed orb is the control now
   }
 
   function setTalkStatus(text, mode){
