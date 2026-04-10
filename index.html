@@ -599,10 +599,15 @@
   const tx=$('transcript'),aiBox=$('aiBox'),aiSpin=$('aiSpin'),aiHdTxt=$('aiHdTxt'),aiRows=$('aiRows');
   const arow=$('arow'),alink=$('alink'),aname=$('aname'),ameta=$('ameta');
   const clearBtn=$('clearBtn'),copyBtn=$('copyBtn');
-  const canvas=$('canvas'),ctx=canvas.getContext('2d');
+  let canvas=null,ctx=null;
+  function initCanvas(){
+    canvas=$('canvas');
+    if(canvas)ctx=canvas.getContext('2d');
+  }
 
   // AUTH
   async function init() {
+    initCanvas();
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
       await setUser(session.user);
@@ -2118,6 +2123,8 @@ Return only valid JSON. Use null for any field not mentioned in the transcript.`
 
   // CANVAS
   function drawIdle(){
+    if(!canvas)initCanvas();
+    if(!canvas)return;
     canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.beginPath();ctx.moveTo(0,canvas.height/2);ctx.lineTo(canvas.width,canvas.height/2);
@@ -2126,6 +2133,8 @@ Return only valid JSON. Use null for any field not mentioned in the transcript.`
 
   function drawWave(){
     if(!an)return;
+    if(!canvas)initCanvas();
+    if(!canvas)return;
     af=requestAnimationFrame(drawWave);
     canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
     const buf=new Uint8Array(an.frequencyBinCount);an.getByteTimeDomainData(buf);
