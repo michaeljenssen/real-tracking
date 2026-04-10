@@ -398,7 +398,6 @@
 
   <div onclick="toggleTalkSession()">
     <canvas id="talkOrbCanvas" width="280" height="280"></canvas>
-    <canvas id="talkWaveCanvas" width="200" height="32"></canvas>
   </div>
 </div>
 
@@ -734,13 +733,11 @@
       if(talkRec)try{talkRec.stop();}catch(e){}
       _talkAudio.pause();
       window.speechSynthesis.cancel();
-      stopTalkAudio();
       setTalkStatus('Stopped','idle');
       setTalkBtn('START',false);
     } else {
       // Start the loop
       talkRunning=true;
-      await startTalkAudio();
       setTalkBtn('STOP',true);
       // First turn - greet user
       setTalkStatus('Connecting...','thinking');
@@ -912,49 +909,6 @@
   function stopOrb(){
     if(orbAF)cancelAnimationFrame(orbAF);
     orbAF=null;
-  }
-
-  // TALK AUDIO - mic analyser for wave visualisation
-  let talkMicStream=null, talkAudioCtx=null, talkAnalyser=null;
-
-  async function startTalkAudio(){
-    try{
-      talkMicStream=await navigator.mediaDevices.getUserMedia({audio:true});
-      talkAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
-      await talkAudioCtx.resume();
-      talkAnalyser=talkAudioCtx.createAnalyser();
-      talkAnalyser.fftSize=256;
-      talkAudioCtx.createMediaStreamSource(talkMicStream).connect(talkAnalyser);
-    }catch(e){console.warn('Talk audio failed:',e);}
-  }
-
-  function stopTalkAudio(){
-    if(talkMicStream)talkMicStream.getTracks().forEach(t=>t.stop());
-    if(talkAudioCtx)try{talkAudioCtx.close();}catch(e){}
-    talkMicStream=null;talkAudioCtx=null;talkAnalyser=null;
-  }
-
-  function drawTalkWave(){
-    const wc=document.getElementById('talkWaveCanvas');
-    if(!wc||!talkAnalyser)return;
-    const wctx=wc.getContext('2d');
-    const W=200,H=32;
-    wctx.clearRect(0,0,W,H);
-    const buf=new Uint8Array(talkAnalyser.frequencyBinCount);
-    talkAnalyser.getByteFrequencyData(buf);
-    const col=orbMode==='listening'?'246,105,42':orbMode==='speaking'?'90,160,250':orbMode==='thinking'?'52,199,89':'107,107,107';
-    const bars=20;
-    const bw=6,gap=4;
-    const total=(bars*bw)+(bars-1)*gap;
-    const startX=(W-total)/2;
-    for(let i=0;i<bars;i++){
-      const idx=Math.floor(i/bars*buf.length*0.5);
-      const h=Math.max(3,(buf[idx]/255)*H*0.9);
-      const x=startX+i*(bw+gap);
-      const y=(H-h)/2;
-      wctx.fillStyle=`rgba(${col},0.8)`;
-      wctx.fillRect(x,y,bw,h);
-    }
   }
 
   // BIO CANVAS - three biological visual styles
