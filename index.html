@@ -270,25 +270,28 @@ border-bottom:1px solid rgba(255,255,255,0.1);
   let liveTranscript = '';
   let waveData = []; // scrolling waveform history
 
-  // Resume AudioContext when app comes back to foreground
+  // Full reset when app comes back from background
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'visible') {
-      if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
-        try { await globalAudioCtx.resume(); } catch(e) {}
+      // If currently recording, stop gracefully
+      if (isRec) {
+        await stopRec();
       }
-      // If stream died while in background, reset it
-      if (globalStream && !globalStream.active) {
-        globalStream = null;
+      // Always fully reset audio state when returning from background
+      globalStream = null;
+      if (globalAudioCtx) {
+        try { await globalAudioCtx.close(); } catch(e) {}
         globalAudioCtx = null;
-        globalAnalyser = null;
-        analyser = null;
       }
-    }
-  });
-
-  window.addEventListener('focus', async () => {
-    if (globalAudioCtx && globalAudioCtx.state === 'suspended') {
-      try { await globalAudioCtx.resume(); } catch(e) {}
+      globalAnalyser = null;
+      analyser = null;
+      // Restart wave animation
+      if (!waveAF) drawWave();
+    } else {
+      // Going to background - stop recording if active
+      if (isRec) {
+        await stopRec();
+      }
     }
   });
 
